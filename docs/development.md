@@ -44,7 +44,7 @@ Dùng thêm file `docker-compose.dev.yml` đè lên `docker-compose.yml`:
 | Service | Thay đổi so với production |
 | --- | --- |
 | `frontend` | Chạy `vite dev` (HMR) thay vì build tĩnh + nginx. Target Docker: `dev`. |
-| `api-1`, `api-2` | `uvicorn --reload --reload-dir /app/app`. Target Docker: `dev`. |
+| `api` | `uvicorn --reload --reload-dir /app/app`. Target Docker: `dev`. |
 
 Source (`src/frontend/src`, `src/backend/app`) được bind-mount nên sửa trên host
 là container thấy ngay:
@@ -58,7 +58,7 @@ make dev-down   # dừng stack dev
 ```
 
 Các thứ không đổi so với production: Nginx vẫn là load balancer ở `:8080`,
-vẫn có rate limit 2 tầng, vẫn trỏ API về `api-1`/`api-2`.
+vẫn có rate limit 2 tầng và trỏ API về service `api`.
 
 ### Vite dev server trong container
 

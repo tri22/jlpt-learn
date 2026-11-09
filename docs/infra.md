@@ -13,8 +13,8 @@ Nginx :8080
   ├─ limit_req zone=api_auth      (riêng /api/v1/auth/)
   └─ limit_conn per_ip 32         (chặn connection flood)
   │
-  ▼ round-robin / least_conn
-api-1 :8000            api-2 :8000
+  ▼
+api :8000
   │
   └─ middleware RateLimitMiddleware (Redis token bucket, theo API key → user → IP)
   │
@@ -62,8 +62,7 @@ Nguồn: `src/backend/app/core/middleware/rate_limit.py`.
 - Token bucket: `capacity = APP_RATE_LIMIT_BURST` (mặc định 10), refill
   `APP_RATE_LIMIT_PER_MINUTE` token mỗi 60 giây (method ghi dùng
   `APP_RATE_LIMIT_WRITE_PER_MINUTE`).
-- Bộ đếm lưu trong Redis bằng Lua script — cập nhật atomically, an toàn khi có
-  nhiều instance backend chạy song song.
+- Bộ đếm lưu trong Redis bằng Lua script — cập nhật atomically.
 - Khóa theo thứ tự ưu tiên: `X-API-Key` → user id → IP.
 - Nếu Redis lỗi: fallback bộ nhớ trong tiến trình, log warning, **không** chặn
   request. Ưu tiên giữ dịch vụ sống hơn là siết rate limit.
@@ -87,22 +86,20 @@ Nguồn: `infra/redis/redis.conf`, `infra/redis/start-redis.sh`.
 ```bash
 # trong .env
 REDIS_PASSWORD=<mật khẩu mới>
-docker compose up -d --force-recreate redis api-1 api-2
+docker compose up -d --force-recreate redis api
 ```
 
-## Load balancing
+## Backend upstream
 
 `infra/nginx/conf.d/upstreams.conf`:
 
-- `least_conn` — chọn instance có ít kết nối nhất.
-- `max_fails=3 fail_timeout=10s` — bỏ qua instance lỗi trong 10 giây.
+- `max_fails=3 fail_timeout=10s` — đánh dấu upstream lỗi trong 10 giây.
 - `keepalive 32` — tái sử dụng kết nối tới upstream.
 
-Kiểm chứng phân bổ:
+Kiểm tra log backend:
 
 ```bash
-docker compose logs api-1 --since 1m | grep -c "GET /api/v1/exams -> 200"
-docker compose logs api-2 --since 1m | grep -c "GET /api/v1/exams -> 200"
+docker compose logs api --since 1m | grep -c "GET /api/v1/exams -> 200"
 ```
 
 ## Logging và truy vết

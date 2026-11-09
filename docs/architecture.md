@@ -5,21 +5,18 @@
 ```text
                         ┌──────────────────────────┐
    Người dùng ────────▶ │  Nginx (load balancer)   │  ← điểm vào duy nhất
-                        │  • round-robin 2 backend  │
+                        │  • proxy tới backend      │
                         │  • limit_req theo IP      │  ← tầng rate limit 1
                         └────────────┬─────────────┘
                                      │
                     ┌────────────────┴────────────────┐
-                    ▼                                 ▼
-        ┌───────────────────────┐         ┌───────────────────────┐
-        │ FastAPI  api-1        │         │ FastAPI  api-2        │
-        │  • middleware:        │         │  (cùng code)          │
-        │    request-id         │         │                       │
-        │    rate limit (Redis) │ ← tầng 2
-        │    CORS               │         │                       │
-        └───────────┬───────────┘         └───────────┬───────────┘
-                    └────────────────┬────────────────┘
                                      ▼
+                     ┌───────────────────────────┐
+                     │ FastAPI api                │
+                     │ • middleware, CORS         │
+                     │ • rate limit (Redis)       │ ← tầng 2
+                     └──────────────┬────────────┘
+                                    ▼
                      ┌───────────────────────────┐
                      │ Redis (counter rate limit) │
                      └───────────────────────────┘
@@ -37,8 +34,8 @@
 ### Load balancer — `infra/nginx/`
 
 - `nginx.conf`: cấu hình http chung, log format có `request_id` và `upstream_response_time`.
-- `conf.d/upstreams.conf`: `upstream backend_upstream` (api-1, api-2) với `least_conn`
-  + `keepalive`, và `upstream frontend_upstream`.
+- `conf.d/upstreams.conf`: `upstream backend_upstream` tới service `api`, và
+  `upstream frontend_upstream`.
 - `conf.d/rate-limit.conf`: khai báo các `limit_req_zone` (xem `docs/infra.md`).
 - `conf.d/proxy.conf`: định tuyến `/api/`, `/api/v1/auth/`, `/` (SPA), `/healthz`.
 

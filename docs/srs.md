@@ -15,17 +15,17 @@
 ### 1.2 Actor
 
 - **Learner:** người dùng cuối, hiện có thể sử dụng không cần đăng nhập.
-- **Operator:** vận hành crawler, dữ liệu, triển khai và giám sát.
-- **System admin:** frontend, API, crawler, Nginx, Redis, JSON/Postgres.
+- **Operator:** vận hành backup, triển khai và giám sát.
+- **System admin:** frontend, API, Nginx, Redis, PostgreSQL và MinIO.
 
 ## 2. Tổng quan sản phẩm
 
 Luồng chính:
 
 ```text
-Learner → React SPA → Nginx → FastAPI → Exam data
+Learner → React SPA → Nginx → FastAPI → PostgreSQL
                                   ├→ Redis: rate limit
-                                  └→ Postgres: schema/seed, runtime migration planned
+                                  └→ MinIO: media
 ```
 
 ## 3. Use case
@@ -48,10 +48,11 @@ Learner → React SPA → Nginx → FastAPI → Exam data
 ### 3.3 Làm và nộp bài
 
 1. Learner bắt đầu một đề; frontend tạo attempt bằng `POST /api/v1/attempts`.
-2. Learner chọn đáp án, có thể bỏ qua câu chưa chắc chắn.
-3. Learner bấm nộp hoặc attempt hết thời gian.
-4. Frontend gửi `POST /api/v1/attempts/{id}/submit`.
-5. Backend chấm theo answer key chuẩn hóa và trả trạng thái, điểm, số câu đúng/sai và đáp án được phép xem.
+2. Learner gửi danh sách đáp án bằng `questionId` và `choiceKey`.
+3. Learner bấm nộp; frontend gửi `POST /api/v1/attempts/{id}/submit`.
+4. Backend lưu lựa chọn, chấm theo answer key và trả trạng thái, điểm, điểm tối đa,
+   thời điểm bắt đầu và thời điểm nộp.
+5. Hết thời gian hiện chỉ được frontend hiển thị; backend chưa tự động submit.
 
 
 
@@ -74,19 +75,19 @@ Learner → React SPA → Nginx → FastAPI → Exam data
 | FR-011 | Câu hỏi Phải giữ thứ tự hiển thị ổn định. | Đã có |
 | FR-012 | Hệ thống Phải hỗ trợ câu hỏi text, image và audio theo loại dữ liệu. | Đã có một phần |
 | FR-013 | Media lỗi hoặc thiếu Phải không làm mất toàn bộ attempt; frontend Nên hiển thị fallback. | Chưa hoàn thiện |
-| FR-014 | Đáp án đúng Phải không lộ trong payload làm bài trước khi nộp. | Cần xác nhận/kiểm tra |
+| FR-014 | Đáp án đúng Phải không lộ trong payload làm bài trước khi nộp. | Chưa đạt: chi tiết đề hiện có `answerKey` |
 
 ### 4.3 Attempt, chấm điểm và kết quả
 
 | ID | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-020 | Learner Phải tạo được attempt cho một đề hợp lệ. | Đã có skeleton |
+| FR-020 | Learner Phải tạo được attempt cho một đề hợp lệ. | Đã có |
 | FR-021 | Hệ thống Phải nhận diện attempt không tồn tại bằng lỗi 404. | Đã có |
-| FR-022 | Hệ thống Phải lưu lựa chọn theo `question_id` và `choice_id`, không phụ thuộc thứ tự frontend. | Mục tiêu |
-| FR-023 | Hệ thống Phải chấm điểm nhất quán theo answer key và trả `score`/`max_score`. | Chưa hoàn thiện |
-| FR-024 | Submit lặp lại Phải có kết quả xác định và không làm nhân đôi dữ liệu. | Mục tiêu |
+| FR-022 | Hệ thống Phải nhận lựa chọn theo `questionId` và `choiceKey`. | Đã có |
+| FR-023 | Hệ thống Phải lưu câu trả lời vào PostgreSQL và trả `score`/`maxScore`. | Đã có |
+| FR-024 | Submit lặp lại Phải không tạo bản ghi `attempt_answers` trùng cho cùng câu hỏi. | Đã có một phần |
 | FR-025 | Khi hết thời lượng, hệ thống Phải tự động khóa hoặc nộp attempt theo chính sách đã cấu hình. | Mục tiêu |
-| FR-026 | Kết quả Phải cho phép xem đáp án và câu sai sau khi nộp, theo chính sách công khai đáp án. | Mục tiêu |
+| FR-026 | Kết quả Phải cho phép xem đáp án và câu sai sau khi nộp, theo chính sách công khai đáp án. | Có endpoint answer-key; review chưa hoàn thiện |
 
 ### 4.4 Ôn tập và review
 
@@ -101,18 +102,17 @@ Learner → React SPA → Nginx → FastAPI → Exam data
 | ID | Yêu cầu | Trạng thái |
 |---|---|---|
 | FR-040 | API Phải dùng envelope `{"data": ..., "error": ...}` cho response thành công/lỗi theo quy ước hiện có. | Đã có |
-| FR-041 | API Phải trả 404 cho exam/attempt không tồn tại và thông báo không chứa secret. | Đã có một phần |
-| FR-042 | API Phải validate payload tạo/nộp attempt tại trust boundary. | Đã có một phần |
+| FR-041 | API Phải trả 404 cho exam/attempt không tồn tại và thông báo không chứa secret. | Đã có với exam/attempt đã tạo |
+| FR-042 | API Phải validate payload tạo/nộp attempt tại trust boundary. | Pydantic đã có; lỗi exam không tồn tại cần chuẩn hóa |
 | FR-043 | Health endpoint Phải cho biết trạng thái ứng dụng và Redis theo mức an toàn. | Đã có |
 
-### 4.6 Dữ liệu và crawler
+### 4.6 Dữ liệu và lưu trữ
 
 | ID | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-050 | Crawler Phải chuẩn hóa HTML/answer/media thành format mà repository đọc được. | Đã có |
-| FR-051 | Crawler Phải không vượt qua verification gate/paywall và phải tôn trọng robots.txt. | Đã có quy định |
-| FR-052 | Dữ liệu Phải có answer key có thể đối chiếu và script verify phải phát hiện sai lệch. | Đã có một phần |
-| FR-053 | Hệ thống Nên chuyển runtime repository sang Postgres sau khi hợp đồng dữ liệu ổn định. | Kế hoạch |
+| FR-050 | Runtime Phải đọc danh sách đề, câu hỏi, lựa chọn và answer key từ PostgreSQL. | Đã có |
+| FR-051 | Media Phải được lưu trong MinIO và trả về path/URL để frontend hiển thị. | Đã có |
+| FR-052 | PostgreSQL và MinIO Phải có script backup/restore độc lập. | Đã có |
 
 ### 4.7 Tài khoản và quyền truy cập
 
@@ -127,7 +127,7 @@ Learner → React SPA → Nginx → FastAPI → Exam data
 ### 5.1 Hiệu năng và khả dụng
 
 - NFR-001: Danh sách đề và nội dung đề phải tải qua API có timeout và trạng thái lỗi rõ ràng.
-- NFR-002: API phải chạy được sau Nginx với nhiều backend instance mà không phụ thuộc state trong bộ nhớ của một instance, trừ fallback rate limit đã quy định.
+- NFR-002: API hiện chạy sau Nginx với một backend instance; dữ liệu attempt phải nằm ở PostgreSQL để có thể scale sau này.
 - NFR-003: Rate limit phải áp dụng ở edge và application layer theo cấu hình hiện có; request bị giới hạn phải nhận response có thể hiểu được.
 - NFR-004: Submit phải ưu tiên tính toàn vẹn dữ liệu hơn việc nhận request mơ hồ hoặc thiếu trường.
 
@@ -136,7 +136,6 @@ Learner → React SPA → Nginx → FastAPI → Exam data
 - NFR-010: Không commit secret/token vào repository hoặc payload frontend.
 - NFR-011: Không đưa answer key vào response làm bài nếu learner chưa nộp hoặc chưa được phép xem.
 - NFR-012: Backend phải validate ID, payload và quyền truy cập trước khi đọc/ghi dữ liệu.
-- NFR-013: Crawler chỉ truy cập nguồn được phép, không bypass verification/paywall.
 - NFR-014: Log phải có request ID để truy vết nhưng không ghi mật khẩu, token hoặc dữ liệu nhạy cảm.
 
 ### 5.3 Trải nghiệm, accessibility và tương thích
@@ -168,6 +167,12 @@ Base path: `/api/v1`.
 | POST | `/attempts/{attempt_id}/submit` | Nộp và chấm attempt |
 | POST | `/auth/login` | Chưa triển khai; hiện trả 501 |
 
+Payload chính:
+
+- `POST /attempts`: `{ "examId": "<public_id>" }`.
+- `POST /attempts/{attempt_id}/submit`: `{ "answers": [{ "questionId": 1001, "choiceKey": "A" }] }`.
+- Response attempt gồm `id`, `examId`, `status`, `score`, `maxScore`, `startedAt`, `submittedAt`.
+
 Response thành công dùng `data`; lỗi dùng `error.code`, `error.message`, và tùy chọn `error.details`. Client phải xử lý status HTTP trước khi tin vào dữ liệu.
 
 ## 7. Mô hình dữ liệu logic
@@ -179,24 +184,24 @@ Các thực thể chính:
 - **Question:** nội dung, loại câu hỏi, cấp độ.
 - **Choice:** lựa chọn và cờ đúng ở lớp dữ liệu chấm điểm.
 - **Media:** ảnh/audio/video và metadata phục vụ hiển thị.
-- **Attempt:** đề đang làm, thời điểm bắt đầu/nộp, trạng thái, điểm.
+- **Attempt:** đề đang làm, thời điểm bắt đầu/nộp, trạng thái, điểm; lưu trong PostgreSQL.
 - **AttemptAnswer:** lựa chọn của learner theo câu hỏi.
-- **Account/User/Role/Permission:** mô hình đã có trong schema cho giai đoạn xác thực sau.
+- **Account/User/Role/Permission:** mô hình schema dự phòng cho giai đoạn xác thực sau.
 
-Nguồn dữ liệu runtime là PostgreSQL; media local được phục vụ từ MinIO. JSON/SQL
-dump chỉ dùng cho bước nạp và tái tạo dữ liệu.
+Nguồn dữ liệu runtime là PostgreSQL; media được phục vụ từ MinIO. Backup dump dùng
+cho phục hồi dữ liệu, còn schema dùng khi khởi tạo volume mới.
 
 ## 8. Tiêu chí nghiệm thu cấp sản phẩm
 
 - AC-001: Người dùng mở trang và xem được danh sách đề hoặc nhận lỗi có thể hiểu được.
 - AC-002: Người dùng mở một đề hợp lệ và thấy đúng thứ tự section/câu hỏi/lựa chọn.
 - AC-003: Exam ID không tồn tại trả 404; frontend không hiển thị một đề rỗng như thể hợp lệ.
-- AC-004: Người dùng tạo attempt, chọn đáp án và nộp bài; kết quả có điểm trên tổng điểm.
+- AC-004: Người dùng tạo attempt, gửi đáp án và nộp bài; kết quả có điểm trên tổng điểm.
 - AC-005: Submit attempt không tồn tại trả 404; payload sai bị từ chối bằng lỗi validation.
 - AC-006: Sau khi nộp, người dùng xem được review theo chính sách answer key.
 - AC-007: Một media không tải được không làm mất toàn bộ nội dung câu hỏi và có fallback phù hợp.
 - AC-008: Request vượt rate limit bị chặn theo cấu hình, còn khi Redis lỗi hệ thống dùng fallback đã quy định và vẫn log được tình trạng.
-- AC-009: Dữ liệu crawl có thể chạy qua bước verify mà không tạo answer key/mapping sai âm thầm.
+- AC-009: Backup PostgreSQL và MinIO có thể restore và kiểm tra được số lượng object.
 - AC-010: Không có secret, password hoặc token nhạy cảm trong response/log/frontend bundle.
 
 ## 9. Ràng buộc, giả định và câu hỏi mở
@@ -205,7 +210,7 @@ dump chỉ dùng cho bước nạp và tái tạo dữ liệu.
 
 - Chỉ dùng nội dung công khai được phép; nguồn và giấy phép nội dung phải được kiểm tra khi phát hành.
 - Nginx là entry point bên ngoài; frontend không biết backend instance cụ thể.
-- Media local được lưu ở MinIO; media URL ngoài tiếp tục giữ nguyên URL nguồn.
+- Media được lưu ở MinIO; backend/frontend không đọc dữ liệu local trung gian.
 
 ### 9.2 Giả định
 
@@ -219,7 +224,7 @@ dump chỉ dùng cho bước nạp và tái tạo dữ liệu.
 2. Thang điểm là số câu đúng, phần trăm, hay mô phỏng scaled score của JLPT?
 3. Khi hết giờ, frontend hay backend là nguồn quyết định cuối cùng cho việc auto-submit?
 4. Người học có được xem toàn bộ answer key sau submit hay chỉ xem đáp án của câu đã trả lời?
-5. Khi chuyển sang Postgres, JSON còn là nguồn dự phòng hay chỉ dùng trong bước build/import?
+5. Có cần lưu chi tiết thời gian chọn và số lần đổi đáp án cho từng câu trong attempt không?
 
 ## 10. Đối chiếu với codebase
 

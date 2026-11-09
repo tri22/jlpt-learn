@@ -7,16 +7,15 @@ frontend React, Nginx làm load balancer kèm rate limit 2 tầng.
 
 - [Kiến trúc hệ thống](docs/architecture.md)
 - [Hạ tầng: load balancer & rate limit](docs/infra.md)
-- [Dữ liệu SQL (Postgres)](docs/data-sql.md)
-- [Phát triển](docs/development.md)
+- [Tài liệu phát triển](docs/development.md)
 - [Cấu trúc DB](docs/data-contract.md)
-- [Vận hành và xử lý sự cố](docs/operations.md)
+- [Vận hành](docs/operations.md)
 
 ## Cấu trúc
 
 ```text
 .
-├── docker-compose.yml        nginx + api-1 + api-2 + redis + frontend + postgres + minio
+├── docker-compose.yml        nginx + api + redis + frontend + postgres + minio
 ├── Makefile                  lệnh vận hành gọn
 ├── docker-compose.dev.yml    biến thể dev: hot reload frontend + backend
 ├── .env.example

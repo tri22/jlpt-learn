@@ -25,7 +25,7 @@ make db-reset
 | `redis: down` trong health | Redis chưa có mật khẩu khớp. `docker compose logs redis`; đảm bảo `REDIS_PASSWORD` giống nhau giữa `redis` và `api-*`. |
 | 429 xuất hiện quá sớm | Đang bị tầng Nginx chặn: xem `docker compose logs nginx \| grep limiting`. Nới zone trong `infra/nginx/conf.d/rate-limit.conf`. |
 | 429 nhưng log Nginx không báo | Bị tầng FastAPI chặn: xem header `X-RateLimit-Limit` và `X-RateLimit-Remaining`. Nới `APP_RATE_LIMIT_PER_MINUTE`. |
-| Frontend hiện "Đang tải…" mãi | API không trả về. Kiểm tra `curl localhost:8080/api/v1/exams` và `docker compose logs api-1`. |
+| Frontend hiện "Đang tải…" mãi | API không trả về. Kiểm tra `curl localhost:8080/api/v1/exams` và `docker compose logs api`. |
 | Frontend không đổi sau khi sửa code | Build lại: `make rebuild`, hoặc `npm run build` trong `src/frontend/` nếu chạy dev server. |
 | Media trả 404 | Kiểm tra object trong MinIO và Nginx đang proxy `/exams/` sang MinIO. |
 | Postgres không có bảng | Schema chỉ chạy khi volume `pgdata` được tạo lần đầu. Chạy `make db-reset` để nạp lại. |
