@@ -1,0 +1,71 @@
+# Chế độ dev: hot reload cho frontend (Vite HMR) và backend (uvicorn --reload).
+#
+# Dùng cùng với file chính:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Hoặc đơn giản: make dev
+#
+# Ở chế độ này source được bind-mount vào container nên sửa file là thấy ngay,
+# không cần build lại image.
+
+name: jlpt-learn
+
+services:
+  api-1: &api
+    build:
+      context: ./src/backend
+      target: dev
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0 --port 8000
+      --proxy-headers
+      --reload
+      --reload-dir /app/app
+    environment:
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_DATABASE_URL: ${APP_DATABASE_URL:-postgresql://jlpt:jlpt_dev_password@postgres:5432/jlpt}
+      APP_MINIO_ENDPOINT: ${APP_MINIO_ENDPOINT:-minio:9000}
+      APP_MINIO_BUCKET: ${APP_MINIO_BUCKET:-jlpt-media}
+      APP_REDIS_URL: redis://:${REDIS_PASSWORD:-jlpt_dev_password}@redis:6379/0
+      APP_REDIS_ENABLED: ${APP_REDIS_ENABLED:-true}
+      APP_RATE_LIMIT_ENABLED: ${APP_RATE_LIMIT_ENABLED:-true}
+      APP_RATE_LIMIT_PER_MINUTE: ${APP_RATE_LIMIT_PER_MINUTE:-60}
+      APP_RATE_LIMIT_WRITE_PER_MINUTE: ${APP_RATE_LIMIT_WRITE_PER_MINUTE:-20}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-["http://localhost:8080","http://localhost:5173"]}
+    volumes:
+      - ./src/backend/app:/app/app:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api-2:
+    <<: *api
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./src/frontend
+      target: dev
+    environment:
+      VITE_API_PROXY_TARGET: http://nginx
+    volumes:
+      - ./src/frontend/src:/app/src
+      - ./src/frontend/public:/app/public
+      - ./src/frontend/index.html:/app/index.html:ro
+      - ./src/frontend/vite.config.js:/app/vite.config.js:ro
+      - ./src/frontend/package.json:/app/package.json:ro
+      # node_modules nằm trong image; volume rỗng để không bị che bởi host
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - api-1
+      - api-2
+    restart: unless-stopped
+
+volumes:
+  frontend_node_modules:

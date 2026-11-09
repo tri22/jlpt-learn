@@ -1,0 +1,48 @@
+:root {
+  --ink: #172033;
+  --muted: #5c6b7a;
+  --paper: #e7eef2;
+  --card: #ffffff;
+  --line: #d5e0e8;
+  --blue: #1d4e89;
+  --blue-soft: #e7f0f8;
+  --red: #b43333;
+  --green: #1c7a4a;
+  --green-soft: #e5f6ec;
+  --wrong-soft: #fde8e8;
+  --amber: #b86e12;
+  --amber-soft: #fff4df;
+  --shadow: 0 10px 30px rgba(23, 32, 51, 0.06);
+  --sans: "Noto Sans JP", "Be Vietnam Pro", "Segoe UI", sans-serif;
+  --display: "Newsreader", "Noto Serif JP", Georgia, serif;
+  color: var(--ink);
+  background: var(--paper);
+  font: 16px/1.6 var(--sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+img,
+audio {
+  max-width: 100%;
+}

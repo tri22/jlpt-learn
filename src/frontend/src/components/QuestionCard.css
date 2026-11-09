@@ -1,0 +1,123 @@
+.question {
+  scroll-margin-top: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 20px 22px 16px;
+  margin-bottom: 16px;
+}
+
+.question-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.question-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.kind {
+  color: var(--blue);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quiz {
+  margin-top: 12px;
+}
+
+.quiz img {
+  height: auto;
+  display: block;
+  margin: 12px 0;
+}
+
+.quiz audio {
+  width: 100%;
+  margin: 12px 0;
+}
+
+.choices {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.choice {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #f8fbfc;
+  cursor: pointer;
+}
+
+.choice-key {
+  flex: none;
+  width: 1.6rem;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.choice.is-selected {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.choice.is-correct {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.choice.is-wrong {
+  border-color: var(--red);
+  background: var(--wrong-soft);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.question-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.flag {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  cursor: pointer;
+}
+
+.flag.on {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.verdict {
+  margin: 0;
+  font-weight: 700;
+}
+
+.verdict.ok {
+  color: var(--green);
+}
+
+.verdict.bad {
+  color: var(--red);
+}

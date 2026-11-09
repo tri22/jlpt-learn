@@ -1,0 +1,30 @@
+.exam {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+  width: min(1120px, calc(100% - 32px));
+  margin-inline: auto;
+  padding-bottom: 48px;
+}
+
+.exam-title {
+  margin-bottom: 20px;
+}
+
+.exam-title p,
+.score {
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.score {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .exam {
+    grid-template-columns: 1fr;
+  }
+}
