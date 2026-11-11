@@ -6,19 +6,19 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // Cho phép truy cập qua host khác (vd: nginx nội bộ trong docker)
+    // Allow access through other hosts, such as internal Nginx in Docker.
     host: true,
     allowedHosts: true,
-    // Ở dev, frontend gọi API qua Nginx (load balancer) để đúng luồng thật.
-    // Đổi VITE_API_PROXY_TARGET nếu Nginx chạy ở host khác.
+    // In development, route API calls through Nginx to match production.
+    // Change VITE_API_PROXY_TARGET when Nginx runs on another host.
     proxy: {
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },
-    // Trong container, bind-mount đôi lúc không nhận được sự kiện file.
-    // Bật polling khi WATCH_USEPOLLING=1.
+    // Bind mounts sometimes miss file events inside containers.
+    // Enable polling with WATCH_USEPOLLING=1.
     watch: {
       usePolling: process.env.WATCH_USEPOLLING === 'true',
       interval: 300,

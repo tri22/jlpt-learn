@@ -23,4 +23,4 @@ docker compose run --rm -T \
   -v "$backup_dir/minio:/backup/minio" \
   minio-tools /app/backup_minio.py
 
-printf 'Đã tạo backup tại: %s\n' "$backup_dir"
+printf 'Backup created at: %s\n' "$backup_dir"

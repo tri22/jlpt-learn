@@ -1,4 +1,4 @@
-"""Đọc dữ liệu đề thi từ PostgreSQL."""
+"""Read exam data from PostgreSQL."""
 
 from html import escape
 
@@ -16,11 +16,11 @@ def _connect(database_url: str):
 
 
 MODE_SUBJECTS = {
-    "reading": ("reading", "Đọc hiểu"),
-    "listening": ("listening", "Nghe hiểu"),
+    "reading": ("reading", "Reading"),
+    "listening": ("listening", "Listening"),
     "kanji": ("kanji", "Kanji"),
-    "vocab": ("vocabulary", "Từ vựng"),
-    "grammar": ("grammar", "Ngữ pháp"),
+    "vocab": ("vocabulary", "Vocabulary"),
+    "grammar": ("grammar", "Grammar"),
 }
 
 

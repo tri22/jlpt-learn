@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchExam, fetchExams } from '../api/exams.js'
 
-/** Danh sách đề thi từ API, có trạng thái loading/error. */
+/** Exam catalog from the API with loading and error states. */
 export function useExams() {
   const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,13 +30,14 @@ export function useExams() {
 }
 
 /**
- * Chi tiết một đề thi theo id.
+ * Exam details by ID.
  *
- * `loading` được suy ra từ việc còn đang chờ dữ liệu cho examId hiện tại, thay vì
- * lưu trong state — nếu không sẽ có một render với `exam === null` và
- * `loading === false`, khiến phần gọi render màn hình làm bài với dữ liệu rỗng.
+ * `loading` is derived from whether the current examId is still pending rather
+ * than stored in state. Otherwise, one render would have `exam === null` and
+ * `loading === false`, causing the caller to render an empty exam screen.
  *
- * `error` cũng được gắn theo id để lỗi của đề trước không lọt sang đề đang xem.
+ * `error` is also associated with an ID so an earlier exam's error cannot leak
+ * into the current exam.
  */
 export function useExam(examId) {
   const [exam, setExam] = useState(null)

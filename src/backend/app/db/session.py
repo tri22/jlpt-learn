@@ -1,4 +1,4 @@
-"""Chỗ dành cho session DB (SQLAlchemy). Skeleton — chưa gắn engine."""
+"""Placeholder for a SQLAlchemy database session; no engine is configured yet."""
 
 from app.core.config import get_settings
 
@@ -8,6 +8,6 @@ from app.core.config import get_settings
 
 
 def get_db():
-    """Placeholder generator. Sẽ yield Session sau khi có engine thật."""
-    raise NotImplementedError("Chưa cấu hình database. Xem docs/data-contract.md.")
+    """Placeholder generator that will yield a Session once an engine is configured."""
+    raise NotImplementedError("The database session is not configured. See docs/data-contract.md.")
     yield  # pragma: no cover

@@ -1,20 +1,20 @@
-# Phát triển local
+# Local Development
 
-## Yêu cầu
+## Requirements
 
-- Python 3.11+ và `venv`.
-- Node.js hiện đại và npm cho frontend.
-- Docker + Docker Compose (để chạy full stack).
+- Python 3.11+ and `venv`.
+- A modern Node.js release and npm for the frontend.
+- Docker and Docker Compose for the full stack.
 
-## Cấu trúc repo
+## Repository Structure
 
 ```text
 src/backend/    API FastAPI
 src/frontend/   SPA React + Vite
-infra/          Cấu hình nginx + redis
+infra/          Nginx and Redis configuration
 ```
 
-## Full stack bằng Docker (khuyến nghị)
+## Full Stack with Docker (Recommended)
 
 ```bash
 cp .env.example .env
@@ -24,13 +24,13 @@ make up
 - Load balancer: <http://localhost:8080>
 - API health: <http://localhost:8080/api/v1/health>
 
-Các lệnh thường dùng:
+Common commands:
 
 ```bash
-make logs       # theo dõi log toàn stack
-make ps         # trạng thái container
-make down       # dừng
-make rebuild    # dựng lại từ đầu
+make logs       # follow all stack logs
+make ps         # show container status
+make down       # stop
+make rebuild    # rebuild from scratch
 ```
 
 ## Dev mode: hot reload
@@ -39,38 +39,37 @@ make rebuild    # dựng lại từ đầu
 make dev
 ```
 
-Dùng thêm file `docker-compose.dev.yml` đè lên `docker-compose.yml`:
+`docker-compose.dev.yml` overrides `docker-compose.yml`:
 
-| Service | Thay đổi so với production |
+| Service | Difference from production |
 | --- | --- |
-| `frontend` | Chạy `vite dev` (HMR) thay vì build tĩnh + nginx. Target Docker: `dev`. |
+| `frontend` | Runs `vite dev` with HMR instead of a static Nginx build. Docker target: `dev`. |
 | `api` | `uvicorn --reload --reload-dir /app/app`. Target Docker: `dev`. |
 
-Source (`src/frontend/src`, `src/backend/app`) được bind-mount nên sửa trên host
-là container thấy ngay:
+Source directories (`src/frontend/src`, `src/backend/app`) are bind-mounted, so
+host changes appear immediately inside the containers:
 
-- Frontend: Vite gửi HMR qua WebSocket → trình duyệt tự cập nhật, giữ nguyên state.
-- Backend: uvicorn theo dõi file, tự restart khi có thay đổi.
+- Frontend: Vite sends HMR updates over WebSocket and preserves browser state.
+- Backend: uvicorn watches files and restarts when they change.
 
 ```bash
-make dev-logs   # log realtime (frontend + backend)
-make dev-down   # dừng stack dev
+make dev-logs   # live frontend and backend logs
+make dev-down   # stop the development stack
 ```
 
-Các thứ không đổi so với production: Nginx vẫn là load balancer ở `:8080`,
-vẫn có rate limit 2 tầng và trỏ API về service `api`.
+Nginx remains the load balancer on `:8080`, two-layer rate limiting remains
+enabled, and API traffic still targets the `api` service.
 
-### Vite dev server trong container
+### Vite Development Server in a Container
 
-`vite.config.js` đã bật `host: true` và `allowedHosts: true` để nginx proxy
-tới được. Nếu hệ thống file không phát sự kiện (một số bind-mount trên
-Docker Desktop), đặt trong `.env`:
+`vite.config.js` enables `host: true` and `allowedHosts: true` so Nginx can proxy
+to it. If the filesystem does not emit events for a bind mount, set this in `.env`:
 
 ```
 WATCH_USEPOLLING=true
 ```
 
-## Chạy từng phần riêng
+## Run Components Separately
 
 ### Backend
 
@@ -85,12 +84,12 @@ APP_REDIS_ENABLED=false \
 uvicorn app.main:app --reload --port 8000
 ```
 
-Biến môi trường (prefix `APP_`) xem `src/backend/app/core/config.py` và `.env.example`.
+See `src/backend/app/core/config.py` and `.env.example` for `APP_` environment variables.
 
 Test:
 
 ```bash
-make test-backend       # hoặc: cd src/backend && python -m pytest -q
+make test-backend       # or: cd src/backend && python -m pytest -q
 ```
 
 ### Frontend
@@ -101,46 +100,46 @@ npm install
 npm run dev
 ```
 
-Vite dev server chạy ở cổng 5173 và proxy `/api` sang Nginx (`VITE_API_PROXY_TARGET`,
-mặc định `http://localhost:8080`). Nếu chưa chạy Docker, trỏ proxy sang
-`http://localhost:8000` để gọi thẳng backend.
+The Vite server runs on port 5173 and proxies `/api` to Nginx through
+`VITE_API_PROXY_TARGET`, which defaults to `http://localhost:8080`. Without
+Docker, point it at `http://localhost:8000` to call the backend directly.
 
-Khi chạy trong Docker (`make dev`), Vite chạy ở cổng 80 của container và nginx
-proxy tới đó, nên vẫn truy cập qua <http://localhost:8080>.
+With Docker (`make dev`), Vite listens on container port 80 and Nginx proxies to
+it, so the application remains available at <http://localhost:8080>.
 
 ```bash
 npm run lint
 npm run build
 ```
 
-### Dữ liệu SQL (Postgres)
+### SQL Data (PostgreSQL)
 
-Schema nằm ở `infra/postgres/init/`. Dữ liệu được khôi phục từ backup.
+The schema is in `infra/postgres/init/`. Data is restored from a backup.
 
 ```bash
-make db-reset      # xoá volume Postgres và nạp lại từ đầu
+make db-reset      # remove the PostgreSQL volume and initialize it again
 ```
 
-Nạp thủ công vào một Postgres khác:
+Load it manually into another PostgreSQL instance:
 
 ```bash
 psql -U jlpt -d jlpt -v ON_ERROR_STOP=1 -f infra/postgres/init/schema.sql
 make restore BACKUP=backups/<timestamp> CONFIRM=1
 ```
 
-Chi tiết: [docs/data-sql.md](docs/data-sql.md).
+See [docs/data-contract.md](data-contract.md) for details.
 
-## Quy trình thay đổi
+## Change Workflow
 
-1. Xác định dữ liệu hoặc hành vi bị ảnh hưởng.
-2. Giữ format cũ tương thích nếu không có lý do bắt buộc phải đổi.
-3. Chạy test backend (`make test-backend`) nếu đụng tới API.
-4. Chạy `npm run lint` và `npm run build` nếu thay đổi frontend.
-5. Cập nhật tài liệu và ghi rõ giới hạn còn lại.
+1. Identify the affected data or behavior.
+2. Preserve compatibility unless a breaking change is required.
+3. Run backend tests (`make test-backend`) after API changes.
+4. Run `npm run lint` and `npm run build` after frontend changes.
+5. Update documentation and record remaining limitations.
 
-## Không commit
+## Do Not Commit
 
 - `.venv/`, `node_modules/`, build output (`dist/`).
-- Cookie, token, thông tin đăng nhập.
-- File `.env` (chỉ commit `.env.example`).
-- Output crawl lớn hoặc media tải lại nếu không phải fixture có chủ đích.
+- Cookies, tokens, or credentials.
+- `.env` files; only `.env.example` is tracked.
+- Large ingestion output or downloaded media unless intentionally used as fixtures.

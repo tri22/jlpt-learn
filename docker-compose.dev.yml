@@ -1,12 +1,12 @@
-# Chế độ dev: hot reload cho frontend (Vite HMR) và backend (uvicorn --reload).
+# Development mode: frontend Vite HMR and backend uvicorn auto-reload.
 #
-# Dùng cùng với file chính:
+# Use with the main Compose file:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 #
-# Hoặc đơn giản: make dev
+# Or simply run: make dev
 #
-# Ở chế độ này source được bind-mount vào container nên sửa file là thấy ngay,
-# không cần build lại image.
+# Source is bind-mounted into containers, so changes appear immediately without
+# rebuilding images.
 
 name: jlpt-learn
 
@@ -54,7 +54,7 @@ services:
       - ./src/frontend/index.html:/app/index.html:ro
       - ./src/frontend/vite.config.js:/app/vite.config.js:ro
       - ./src/frontend/package.json:/app/package.json:ro
-      # node_modules nằm trong image; volume rỗng để không bị che bởi host
+      # Keep image-installed node_modules isolated from the host bind mount.
       - frontend_node_modules:/app/node_modules
     depends_on:
       - api

@@ -1,4 +1,4 @@
-"""Gắn X-Request-Id vào request và log để truy vết xuyên suốt qua Nginx -> backend."""
+"""Attach X-Request-Id for end-to-end tracing through Nginx and the backend."""
 
 import logging
 import uuid

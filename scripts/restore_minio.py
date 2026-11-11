@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Khôi phục object MinIO từ một thư mục backup."""
+"""Restore MinIO objects from a backup directory."""
 
 import json
 import mimetypes
@@ -17,7 +17,7 @@ def main() -> None:
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     if metadata["bucket"] != bucket:
         raise RuntimeError(
-            f"Backup thuộc bucket {metadata['bucket']}, không phải {bucket}"
+            f"Backup belongs to bucket {metadata['bucket']}, not {bucket}"
         )
 
     client = Minio(
@@ -37,16 +37,16 @@ def main() -> None:
         key = item["key"]
         source = backup_dir / key
         if not source.is_file():
-            raise FileNotFoundError(f"Thiếu object trong backup: {source}")
+            raise FileNotFoundError(f"Backup object is missing: {source}")
         content_type = mimetypes.guess_type(key)[0] or "application/octet-stream"
         client.fput_object(bucket, key, str(source), content_type=content_type)
         restored += 1
 
     if restored != metadata["object_count"]:
         raise RuntimeError(
-            f"Khôi phục thiếu object: {restored}/{metadata['object_count']}"
+            f"Restore is missing objects: {restored}/{metadata['object_count']}"
         )
-    print(f"Đã restore {restored} object vào MinIO bucket {bucket}")
+    print(f"Restored {restored} objects to MinIO bucket {bucket}")
 
 
 if __name__ == "__main__":

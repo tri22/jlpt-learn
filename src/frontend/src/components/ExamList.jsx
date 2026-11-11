@@ -1,17 +1,18 @@
 import './ExamList.css'
+import { formatExamTitle } from '../utils/exam.js'
 
-/** Rút gọn id đề thành nhãn đọc được: `de-3` -> `Đề 3`, `jt4y-n5-kanji-05` -> `Kanji 05`. */
+/** Convert an exam ID into a readable label: `de-3` -> `Exam 3`. */
 function examLabel(exam) {
-  if (exam.id.startsWith('de-')) return `Đề ${exam.id.slice(3)}`
+  if (exam.id.startsWith('de-')) return `Exam ${exam.id.slice(3)}`
 
   const match = exam.id.match(/^jt4y-n5-([a-z]+)-(\d+)$/)
   if (match) {
     const labels = {
-      vocabulary: 'Từ vựng',
-      grammar: 'Ngữ pháp',
-      reading: 'Đọc hiểu',
+      vocabulary: 'Vocabulary',
+      grammar: 'Grammar',
+      reading: 'Reading',
       kanji: 'Kanji',
-      listening: 'Nghe hiểu',
+      listening: 'Listening',
     }
     return `${labels[match[1]] ?? match[1]} ${match[2]}`
   }
@@ -21,7 +22,7 @@ function examLabel(exam) {
 
 export default function ExamList({ exams = [] }) {
   if (!exams.length) {
-    return <p className="exam-list__empty">Chưa có đề thi nào.</p>
+    return <p className="exam-list__empty">No exams available.</p>
   }
 
   return (
@@ -30,13 +31,13 @@ export default function ExamList({ exams = [] }) {
         <li key={exam.id}>
           <a className="exam-card" href={`#/bai-thi/${exam.id}`}>
             {examLabel(exam) ? <span className="exam-card__no">{examLabel(exam)}</span> : null}
-            <span className="exam-card__title">{exam.title.replace(/^Đề\s+Thi\s+/i, '')}</span>
+            <span className="exam-card__title">{formatExamTitle(exam.title)}</span>
             <span className="exam-card__facts">
-              <span>{exam.questionCount} câu</span>
+              <span>{exam.questionCount} questions</span>
               <span aria-hidden="true">·</span>
-              <span>{exam.durationMinutes} phút</span>
+              <span>{exam.durationMinutes} minutes</span>
             </span>
-            <span className="exam-card__cta">Bắt đầu làm bài</span>
+            <span className="exam-card__cta">Start exam</span>
           </a>
         </li>
       ))}

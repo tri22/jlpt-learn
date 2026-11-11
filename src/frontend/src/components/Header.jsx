@@ -7,14 +7,14 @@ export default function Header({ exam }) {
         <p className="site-header__title">{exam.title}</p>
         <dl className="header-facts">
           <div>
-            <dt>Số câu</dt>
+            <dt>Questions</dt>
             <dd>{exam.questionCount}</dd>
           </div>
           <div>
-            <dt>Thời gian</dt>
+            <dt>Duration</dt>
             <dd>
               {exam.durationMinutes}
-              <small>phút</small>
+              <small>minutes</small>
             </dd>
           </div>
         </dl>

@@ -1,4 +1,4 @@
-"""Envelope response thống nhất cho toàn bộ API."""
+"""Shared response envelope for the API."""
 
 from typing import Any
 

@@ -1,245 +1,358 @@
 # Software Requirements Specification (SRS)
 
-## JLPT Learn — Nền tảng luyện thi JLPT N5
+## JLPT Learn — Current Functional Baseline
 
-## 1. Bối cảnh và các bên liên quan
-
-### 1.1 Bên liên quan
-
-| Bên | Nhu cầu |
+| Attribute | Value |
 |---|---|
-| Người học | Làm đề nhanh, rõ ràng, có kết quả và đáp án để tự học. |
-| Người vận hành | Nạp dữ liệu, theo dõi lỗi, giới hạn truy cập và duy trì dịch vụ. |
-| Người phát triển | API và dữ liệu có hợp đồng ổn định, dễ kiểm thử. |
+| Document version | 1.3 |
+| Last updated | 2026-11-10 |
+| Scope | Functions currently implemented in the repository |
+| Product | JLPT practice website currently positioned for the N5 level |
 
-### 1.2 Actor
+## 1. Purpose and Scope
 
-- **Learner:** người dùng cuối, hiện có thể sử dụng không cần đăng nhập.
-- **Operator:** vận hành backup, triển khai và giám sát.
-- **System admin:** frontend, API, Nginx, Redis, PostgreSQL và MinIO.
+This document describes the behavior **currently implemented** by JLPT Learn and
+serves as a baseline for testing, operations, and further development. Limitations
+and incomplete behavior are documented separately and must not be treated as
+implemented features.
 
-## 2. Tổng quan sản phẩm
+The system currently allows anonymous learners to:
 
-Luồng chính:
+- browse subject-based review exams and mock exams;
+- open an exam, select answers, flag questions for review, and navigate between questions;
+- take a timed exam, submit it, or have it graded automatically when time expires;
+- view scores and correct answers in the browser;
+- restart an exam from the beginning.
+
+The backend also provides independent APIs for creating, reading, and submitting
+an attempt. This flow persists data in PostgreSQL but is **not used by the current
+exam screen**.
+
+The following are outside this baseline: working registration and login, learner
+profiles, attempt history in the UI, content administration, payments, and official
+JLPT scaled-score simulation.
+
+## 2. Stakeholders and Actors
+
+| Actor/Stakeholder | Role in the current version |
+|---|---|
+| Learner | Browses and takes public exams without an account. |
+| Operator | Deploys the stack, monitors health/logs, and backs up or restores data. |
+| Developer/Tester | Maintains the frontend, API, schema, and data contracts. |
+
+## 3. System Overview
 
 ```text
-Learner → React SPA → Nginx → FastAPI → PostgreSQL
-                                  ├→ Redis: rate limit
-                                  └→ MinIO: media
+Learner → Nginx → React SPA
+                ├→ FastAPI → PostgreSQL
+                │          └→ Redis (rate limiting)
+                └→ MinIO (/exams/* internal media)
 ```
 
-## 3. Use case
+- React/Vite provides the SPA and hash-based routing.
+- Nginx is the entry point and proxies the UI, `/api/*`, and `/exams/*` media.
+- FastAPI reads exams from and stores attempts in PostgreSQL.
+- Redis stores the rate-limit token bucket; the backend uses in-process memory if Redis fails.
+- MinIO stores internal media in the `jlpt-media` bucket; external media paths are
+  preserved as provided by the data.
 
-### 3.1 Xem danh sách đề
+### 3.1 Operational Assumptions
 
-1. Learner mở trang chủ, ôn tập hoặc thi thử.
-2. Hệ thống gọi `GET /api/v1/exams`.
-3. Hệ thống hiển thị tiêu đề, cấp độ, loại đề, số câu và thời lượng.
-4. Nếu tải lỗi, hệ thống hiển thị thông báo có thể hiểu được và không làm hỏng toàn trang.
+- PostgreSQL already contains the schema and valid exam data.
+- An exam appears in the catalog only when `examinations.published = true`.
+- Learners can access external URLs when an exam references external media.
+- Nginx is the production entry point; the Vite proxy is used in development.
 
-### 3.2 Mở đề thi
+## 4. Current Functional Requirements
 
-1. Learner chọn một đề.
-2. Hệ thống gọi `GET /api/v1/exams/{exam_id}`.
-3. Hệ thống hiển thị các section theo thứ tự, câu hỏi và lựa chọn.
-4. Hệ thống tải media theo URL/path được dữ liệu cung cấp.
-5. Nếu đề không tồn tại, API trả 404 và frontend hiển thị trạng thái không tìm thấy.
+Status labels used in this document:
 
-### 3.3 Làm và nộp bài
+- **Implemented:** connected from the UI to the data layer or complete within the stated scope.
+- **Backend only:** the API exists, but the UI does not use it.
+- **Partial:** basic behavior exists with clearly documented limitations.
 
-1. Learner bắt đầu một đề; frontend tạo attempt bằng `POST /api/v1/attempts`.
-2. Learner gửi danh sách đáp án bằng `questionId` và `choiceKey`.
-3. Learner bấm nộp; frontend gửi `POST /api/v1/attempts/{id}/submit`.
-4. Backend lưu lựa chọn, chấm theo answer key và trả trạng thái, điểm, điểm tối đa,
-   thời điểm bắt đầu và thời điểm nộp.
-5. Hết thời gian hiện chỉ được frontend hiển thị; backend chưa tự động submit.
+### 4.1 CRUD Overview Matrix
 
+| Resource | Create | Read | Update | Delete |
+|---|---|---|---|---|
+| Exam | No create API | Catalog, details, answer key | None | None |
+| Attempt | Create anonymous attempt | Read attempt status | Submit/grade and resubmit | None |
+| In-progress frontend answer | Created on first answer selection | Display status and result | Change answer, flag question, update timer | Clear all on restart or page reload |
+| Media | No uploader | Read through exam details and Nginx/MinIO | None | None |
+| Account | None | None | None | None |
 
+### 4.2 Create
 
-## 4. Yêu cầu chức năng
+| ID | Resource | Current requirement | Status |
+|---|---|---|---|
+| FR-ATT-001 | Attempt | `POST /api/v1/attempts` shall create an anonymous attempt for a valid public `examId`, use the exam duration, and return HTTP 201. | Backend only |
 
-### 4.1 Danh mục và điều hướng
+The frontend does not create exams, media, or accounts. Selecting an answer only
+creates temporary browser state and does not create a backend record.
 
-| ID | Yêu cầu | Trạng thái |
+### 4.3 Read
+
+#### 4.3.1 Navigation
+
+| ID | Current requirement | Status |
 |---|---|---|
-| FR-001 | Hệ thống Phải cung cấp danh sách đề JLPT N5 có `id`, tiêu đề, loại, số câu và thời lượng. | Đã có |
-| FR-002 | Người học Phải lọc/điều hướng được khu vực thi thử và ôn tập theo môn. | Đã có một phần |
-| FR-003 | Frontend Phải có trạng thái loading, lỗi và dữ liệu rỗng cho danh sách đề. | Đã có một phần |
-| FR-004 | Hệ thống Nên giữ URL/hash route có thể chia sẻ và tải lại. | Đã có |
+| FR-NAV-001 | The SPA shall recognize `#/`, `#/on-tap`, `#/on-tap/{subject}`, `#/thi-thu`, `#/bai-thi/{exam_id}`, `#/huong-dan`, and `#/gioi-thieu`; other routes shall resolve to the home page. | Implemented |
+| FR-NAV-002 | The navigation bar shall provide access to review, subject selection, mock exams, the guide, and the about page. | Implemented |
+| FR-NAV-003 | The browser tab title shall change according to the current page, subject, or exam title. | Implemented |
+| FR-NAV-004 | The home page shall link to the two primary flows: review and mock exams. | Implemented |
+| FR-NAV-005 | The footer shall display the exam count and total question count from the loaded API catalog. | Implemented |
 
-### 4.2 Nội dung đề và media
+#### 4.3.2 Exam Catalog
 
-| ID | Yêu cầu | Trạng thái |
+| ID | Current requirement | Status |
 |---|---|---|
-| FR-010 | API Phải trả chi tiết đề gồm section, vị trí câu, nội dung, lựa chọn và media liên quan. | Đã có |
-| FR-011 | Câu hỏi Phải giữ thứ tự hiển thị ổn định. | Đã có |
-| FR-012 | Hệ thống Phải hỗ trợ câu hỏi text, image và audio theo loại dữ liệu. | Đã có một phần |
-| FR-013 | Media lỗi hoặc thiếu Phải không làm mất toàn bộ attempt; frontend Nên hiển thị fallback. | Chưa hoàn thiện |
-| FR-014 | Đáp án đúng Phải không lộ trong payload làm bài trước khi nộp. | Chưa đạt: chi tiết đề hiện có `answerKey` |
+| FR-CAT-001 | The frontend shall load the catalog through `GET /api/v1/exams` when the application starts. | Implemented |
+| FR-CAT-002 | The API shall return only published exams, ordered by `examinations.id`, with `id`, `title`, `questionCount`, `durationMinutes`, `mode`, `kind`, `subject`, and `subjectLabel`. | Implemented |
+| FR-CAT-003 | An exam with `mode=full` shall be classified as `kind=mock`; other modes shall be classified as `kind=review`. | Implemented |
+| FR-CAT-004 | The `vocab`, `grammar`, `kanji`, `reading`, and `listening` modes shall map to their corresponding UI subjects. | Implemented |
+| FR-CAT-005 | The review page shall filter `kind=review` exams, filter/group them by subject, and show loading/error states; the empty-state message currently appears only within a selected subject list. | Partial |
+| FR-CAT-006 | The mock-exam page shall filter `kind=mock` exams, show the total exam/question counts, and link to each exam. | Implemented |
 
-### 4.3 Attempt, chấm điểm và kết quả
+#### 4.3.3 Exam Details and Media
 
-| ID | Yêu cầu | Trạng thái |
+| ID | Current requirement | Status |
 |---|---|---|
-| FR-020 | Learner Phải tạo được attempt cho một đề hợp lệ. | Đã có |
-| FR-021 | Hệ thống Phải nhận diện attempt không tồn tại bằng lỗi 404. | Đã có |
-| FR-022 | Hệ thống Phải nhận lựa chọn theo `questionId` và `choiceKey`. | Đã có |
-| FR-023 | Hệ thống Phải lưu câu trả lời vào PostgreSQL và trả `score`/`maxScore`. | Đã có |
-| FR-024 | Submit lặp lại Phải không tạo bản ghi `attempt_answers` trùng cho cùng câu hỏi. | Đã có một phần |
-| FR-025 | Khi hết thời lượng, hệ thống Phải tự động khóa hoặc nộp attempt theo chính sách đã cấu hình. | Mục tiêu |
-| FR-026 | Kết quả Phải cho phép xem đáp án và câu sai sau khi nộp, theo chính sách công khai đáp án. | Có endpoint answer-key; review chưa hoàn thiện |
+| FR-EXAM-001 | When `#/bai-thi/{exam_id}` opens, the frontend shall call `GET /api/v1/exams/{exam_id}` and display loading, error, or exam content. | Implemented |
+| FR-EXAM-002 | The API shall find an exam by `public_id`; the details endpoint also accepts a numeric internal ID. | Implemented |
+| FR-EXAM-003 | Exam details shall include metadata, questions, choices, and `answerKey`. | Implemented |
+| FR-EXAM-004 | Questions shall be ordered by `exam_questions.position`; choices shall receive `A`, `B`, ... keys in choice-ID order. | Implemented |
+| FR-EXAM-005 | Question text shall be escaped before HTML is generated, and line breaks shall be converted to `<br>`. | Implemented |
+| FR-EXAM-006 | `audio` media shall be embedded with an audio element; all other current media types are embedded with an image element. | Partial |
+| FR-EXAM-007 | The API shall return 404 when an exam or answer key is not found. | Implemented |
+| FR-SYS-001 | `GET /api/v1/exams/{exam_id}/answer-key` shall return the complete answer key without requiring authentication. | Implemented |
 
-### 4.4 Ôn tập và review
+#### 4.3.4 Exam State, Attempts, and System Status
 
-| ID | Yêu cầu | Trạng thái |
+| ID | Current requirement | Status |
 |---|---|---|
-| FR-030 | Người học Phải mở được trang ôn tập theo môn. | Đã có một phần |
-| FR-031 | Trang review Phải phân biệt câu đúng, sai, bỏ trống và chưa chấm. | Mục tiêu |
-| FR-032 | Người học Nên chuyển tới câu hỏi hoặc đề gốc từ review. | Mục tiêu |
+| FR-TEST-003 | The question navigator shall show answered, unanswered, and flagged questions and allow scrolling to a selected question. | Implemented |
+| FR-TEST-006 | Results shall show the correct-answer count, answered-question count, correct/incorrect/unanswered states, and the correct answers. | Implemented |
+| FR-ATT-002 | `GET /api/v1/attempts/{attempt_id}` shall return status, score, maximum score, and timestamps; an unknown ID shall return 404. | Backend only |
+| FR-SYS-003 | `GET /api/v1/health` shall return liveness, Redis status (`up`, `down`, or `disabled`), application name, and environment. | Implemented |
+| FR-SYS-004 | The health endpoint shall be exempt from FastAPI middleware rate limiting. | Implemented |
 
-### 4.5 API và lỗi
+### 4.4 Update
 
-| ID | Yêu cầu | Trạng thái |
+#### 4.4.1 Update In-Progress Frontend State
+
+| ID | Current requirement | Status |
 |---|---|---|
-| FR-040 | API Phải dùng envelope `{"data": ..., "error": ...}` cho response thành công/lỗi theo quy ước hiện có. | Đã có |
-| FR-041 | API Phải trả 404 cho exam/attempt không tồn tại và thông báo không chứa secret. | Đã có với exam/attempt đã tạo |
-| FR-042 | API Phải validate payload tạo/nộp attempt tại trust boundary. | Pydantic đã có; lỗi exam không tồn tại cần chuẩn hóa |
-| FR-043 | Health endpoint Phải cho biết trạng thái ứng dụng và Redis theo mức an toàn. | Đã có |
+| FR-TEST-001 | A learner shall be able to select or change one answer per question; answers are stored in React state for the current page session. | Implemented |
+| FR-TEST-002 | A learner shall be able to flag or unflag a question before grading. | Implemented |
+| FR-TEST-004 | The timer shall start at `durationMinutes × 60`, decrease every second, and never fall below 0. | Implemented |
+| FR-TEST-005 | Selecting “Submit” or reaching 0 seconds shall lock answer selection and grade locally using the exam payload's `answerKey`. | Implemented |
 
-### 4.6 Dữ liệu và lưu trữ
+#### 4.4.2 Update Backend Attempt
 
-| ID | Yêu cầu | Trạng thái |
+| ID | Current requirement | Status |
 |---|---|---|
-| FR-050 | Runtime Phải đọc danh sách đề, câu hỏi, lựa chọn và answer key từ PostgreSQL. | Đã có |
-| FR-051 | Media Phải được lưu trong MinIO và trả về path/URL để frontend hiển thị. | Đã có |
-| FR-052 | PostgreSQL và MinIO Phải có script backup/restore độc lập. | Đã có |
+| FR-ATT-003 | `POST /api/v1/attempts/{attempt_id}/submit` shall accept a list of `{questionId, choiceKey}` values and return 404 when the attempt does not exist. | Backend only |
+| FR-ATT-004 | On submission, the backend shall map `A`, `B`, ... keys by choice-ID order, upsert by `(attempt_id, question_id)`, and mark each answer correct or incorrect. | Backend only |
+| FR-ATT-005 | The backend shall update `status=submitted`, `submitted_at`, `elapsed_sec`, answered/correct/incorrect/unanswered counts, `score`, and `max_score`. | Backend only |
+| FR-ATT-006 | Resubmitting the same question shall not create a duplicate row, but currently increments `selection_count` and `change_count`. | Backend only |
 
-### 4.7 Tài khoản và quyền truy cập
+### 4.5 Delete or Reset
 
-| ID | Yêu cầu | Trạng thái |
-|---|---|---|
-| FR-060 | Phiên bản hiện tại Phải cho phép luyện đề công khai không cần đăng nhập. | Đã có |
-| FR-061 | Khi triển khai auth, mật khẩu Phải lưu dưới dạng hash và quyền Phải kiểm tra ở backend. | Kế hoạch |
-| FR-062 | Login chưa triển khai Phải trả trạng thái rõ ràng, không giả vờ đăng nhập thành công. | Đã có một phần |
+| ID | Scope | Current requirement | Status |
+|---|---|---|---|
+| FR-TEST-007 | Frontend | “Restart” shall clear answers, flags, and results and reset the timer. | Implemented |
+| FR-TEST-008 | Frontend | In-progress exam data shall be lost after a page reload or navigation to another exam because it exists only in React state. | Implemented by current design |
 
-## 5. Yêu cầu phi chức năng
+The system currently provides **no Delete API** for exams, attempts, answers,
+media, or accounts. PostgreSQL `ON DELETE` rules only preserve integrity when data
+is removed through other operational tools; they are not user-facing features.
 
-### 5.1 Hiệu năng và khả dụng
+### 4.6 Supporting Functions Outside CRUD
 
-- NFR-001: Danh sách đề và nội dung đề phải tải qua API có timeout và trạng thái lỗi rõ ràng.
-- NFR-002: API hiện chạy sau Nginx với một backend instance; dữ liệu attempt phải nằm ở PostgreSQL để có thể scale sau này.
-- NFR-003: Rate limit phải áp dụng ở edge và application layer theo cấu hình hiện có; request bị giới hạn phải nhận response có thể hiểu được.
-- NFR-004: Submit phải ưu tiên tính toàn vẹn dữ liệu hơn việc nhận request mơ hồ hoặc thiếu trường.
+| ID | Group | Current requirement | Status |
+|---|---|---|---|
+| FR-SYS-002 | Authentication | `POST /api/v1/auth/login` shall return HTTP 501 with code `not_implemented`; the system shall not create a fake session. | Implemented |
+| FR-OPS-001 | Backup | The backup script shall create a PostgreSQL dump and a copy of MinIO objects/metadata in a UTC timestamped directory. | Implemented |
+| FR-OPS-002 | Restore | Restore shall require a valid backup path and `CONFIRM=1` before replacing current data. | Implemented |
 
-### 5.2 Bảo mật và riêng tư
+## 5. External Interface Requirements
 
-- NFR-010: Không commit secret/token vào repository hoặc payload frontend.
-- NFR-011: Không đưa answer key vào response làm bài nếu learner chưa nộp hoặc chưa được phép xem.
-- NFR-012: Backend phải validate ID, payload và quyền truy cập trước khi đọc/ghi dữ liệu.
-- NFR-014: Log phải có request ID để truy vết nhưng không ghi mật khẩu, token hoặc dữ liệu nhạy cảm.
+### 5.1 User Interface
 
-### 5.3 Trải nghiệm, accessibility và tương thích
-
-- NFR-020: Frontend phải dùng thông báo lỗi có ngữ nghĩa, không chỉ phụ thuộc màu sắc.
-- NFR-021: Điều khiển làm bài phải dùng được bằng bàn phím và có trạng thái focus rõ ràng.
-- NFR-022: Nội dung tiếng Việt/Nhật phải hiển thị đúng Unicode; audio phải có nhãn hoặc mô tả phù hợp.
-- NFR-023: SPA phải hoạt động trên trình duyệt hiện đại hỗ trợ React/Vite; layout phải dùng được trên màn hình nhỏ.
-
-### 5.4 Vận hành và bảo trì
-
-- NFR-030: Có health check cho liveness và tình trạng phụ thuộc quan trọng.
-- NFR-031: Có log JSON và request ID xuyên suốt Nginx → backend.
-- NFR-032: Dữ liệu PostgreSQL và MinIO phải có thể phục hồi từ backup.
-- NFR-033: API contract, schema và thay đổi breaking phải được cập nhật trong tài liệu kỹ thuật.
-
-## 6. Hợp đồng API baseline
-
-Base path: `/api/v1`.
-
-| Method | Endpoint | Mục đích |
-|---|---|---|
-| GET | `/health` | Liveness và trạng thái Redis |
-| GET | `/exams` | Danh sách đề |
-| GET | `/exams/{exam_id}` | Chi tiết đề, câu hỏi, media |
-| GET | `/exams/{exam_id}/answer-key` | Đáp án theo chính sách công khai |
-| POST | `/attempts` | Tạo attempt |
-| GET | `/attempts/{attempt_id}` | Lấy trạng thái attempt |
-| POST | `/attempts/{attempt_id}/submit` | Nộp và chấm attempt |
-| POST | `/auth/login` | Chưa triển khai; hiện trả 501 |
-
-Payload chính:
-
-- `POST /attempts`: `{ "examId": "<public_id>" }`.
-- `POST /attempts/{attempt_id}/submit`: `{ "answers": [{ "questionId": 1001, "choiceKey": "A" }] }`.
-- Response attempt gồm `id`, `examId`, `status`, `score`, `maxScore`, `startedAt`, `submittedAt`.
-
-Response thành công dùng `data`; lỗi dùng `error.code`, `error.message`, và tùy chọn `error.details`. Client phải xử lý status HTTP trước khi tin vào dữ liệu.
-
-## 7. Mô hình dữ liệu logic
-
-Các thực thể chính:
-
-- **Exam:** đề, cấp độ, loại, thời lượng, số câu, trạng thái publish.
-- **Section:** phần/môn và thứ tự trong đề.
-- **Question:** nội dung, loại câu hỏi, cấp độ.
-- **Choice:** lựa chọn và cờ đúng ở lớp dữ liệu chấm điểm.
-- **Media:** ảnh/audio/video và metadata phục vụ hiển thị.
-- **Attempt:** đề đang làm, thời điểm bắt đầu/nộp, trạng thái, điểm; lưu trong PostgreSQL.
-- **AttemptAnswer:** lựa chọn của learner theo câu hỏi.
-- **Account/User/Role/Permission:** mô hình schema dự phòng cho giai đoạn xác thực sau.
-
-Nguồn dữ liệu runtime là PostgreSQL; media được phục vụ từ MinIO. Backup dump dùng
-cho phục hồi dữ liệu, còn schema dùng khi khởi tạo volume mới.
-
-## 8. Tiêu chí nghiệm thu cấp sản phẩm
-
-- AC-001: Người dùng mở trang và xem được danh sách đề hoặc nhận lỗi có thể hiểu được.
-- AC-002: Người dùng mở một đề hợp lệ và thấy đúng thứ tự section/câu hỏi/lựa chọn.
-- AC-003: Exam ID không tồn tại trả 404; frontend không hiển thị một đề rỗng như thể hợp lệ.
-- AC-004: Người dùng tạo attempt, gửi đáp án và nộp bài; kết quả có điểm trên tổng điểm.
-- AC-005: Submit attempt không tồn tại trả 404; payload sai bị từ chối bằng lỗi validation.
-- AC-006: Sau khi nộp, người dùng xem được review theo chính sách answer key.
-- AC-007: Một media không tải được không làm mất toàn bộ nội dung câu hỏi và có fallback phù hợp.
-- AC-008: Request vượt rate limit bị chặn theo cấu hình, còn khi Redis lỗi hệ thống dùng fallback đã quy định và vẫn log được tình trạng.
-- AC-009: Backup PostgreSQL và MinIO có thể restore và kiểm tra được số lượng object.
-- AC-010: Không có secret, password hoặc token nhạy cảm trong response/log/frontend bundle.
-
-## 9. Ràng buộc, giả định và câu hỏi mở
-
-### 9.1 Ràng buộc
-
-- Chỉ dùng nội dung công khai được phép; nguồn và giấy phép nội dung phải được kiểm tra khi phát hành.
-- Nginx là entry point bên ngoài; frontend không biết backend instance cụ thể.
-- Media được lưu ở MinIO; backend/frontend không đọc dữ liệu local trung gian.
-
-### 9.2 Giả định
-
-- Phiên bản đầu ưu tiên người học chưa đăng nhập.
-- Answer key dùng cho chấm điểm nội bộ; quyền hiển thị sau nộp cần được chốt theo sản phẩm.
-- Một attempt gắn với một exam và không đổi exam giữa chừng.
-
-### 9.3 Câu hỏi mở cần chốt trước khi hoàn thiện các phần mục tiêu
-
-1. Attempt có cần lưu lâu dài cho người dùng ẩn danh hay chỉ tồn tại trong một phiên?
-2. Thang điểm là số câu đúng, phần trăm, hay mô phỏng scaled score của JLPT?
-3. Khi hết giờ, frontend hay backend là nguồn quyết định cuối cùng cho việc auto-submit?
-4. Người học có được xem toàn bộ answer key sau submit hay chỉ xem đáp án của câu đã trả lời?
-5. Có cần lưu chi tiết thời gian chọn và số lần đổi đáp án cho từng câu trong attempt không?
-
-## 10. Đối chiếu với codebase
-
-| Khu vực | Thành phần liên quan |
+| Screen | Primary functions |
 |---|---|
-| API exam | `src/backend/app/api/routers/exams.py`, `services/exam_service.py`, `repositories/exam_repository.py` |
-| API attempt | `src/backend/app/api/routers/attempts.py`, `schemas/exam.py` |
-| API client | `src/frontend/src/api/client.js`, `exams.js`, `attempts.js` |
-| Điều hướng/UI | `src/frontend/src/App.jsx`, `pages/Home.jsx`, `Exam.jsx`, `MockTest.jsx`, `Review.jsx` |
-| Dữ liệu | PostgreSQL và MinIO; khôi phục từ backup |
-| Backup/restore | `scripts/backup_storage.sh`, `scripts/restore_storage.sh` |
-| Vận hành | `infra/nginx/`, Redis middleware, `docs/infra.md` |
+| Home | Choose review or mock exams. |
+| Review | View all subjects or filter Vocabulary, Grammar, Kanji, Reading, and Listening. |
+| Mock exams | View comprehensive exams and open an exam. |
+| Exam | Answer, flag, navigate, track time, grade, and restart. |
+| Guide | Explain exam usage, the timer, and media. |
+| About | Describe the product purpose and content structure. |
 
-## 11. Lịch sử thay đổi
+### 5.2 HTTP API
 
-| Phiên bản | Ngày | Thay đổi |
+Default base path: `/api/v1`.
+
+| Method | Endpoint | Successful result |
 |---|---|---|
-| 1.0 | 2026-11-09 | Tạo SRS baseline và mục tiêu sản phẩm từ codebase hiện tại. |
+| GET | `/health` | Application and Redis status |
+| GET | `/exams` | Published exam catalog |
+| GET | `/exams/{exam_id}` | Exam details, questions, and answers |
+| GET | `/exams/{exam_id}/answer-key` | Exam answer key |
+| POST | `/attempts` | Create attempt, HTTP 201 |
+| GET | `/attempts/{attempt_id}` | Attempt status |
+| POST | `/attempts/{attempt_id}/submit` | Store answers and grade attempt |
+| POST | `/auth/login` | Always returns HTTP 501 in this baseline |
+
+Primary payloads:
+
+```json
+{
+  "examId": "<exam-public-id>"
+}
+```
+
+```json
+{
+  "answers": [
+    { "questionId": 1001, "choiceKey": "A" }
+  ]
+}
+```
+
+Responses created by the application helper use this shape:
+
+```json
+{
+  "data": {},
+  "error": null
+}
+```
+
+Errors created by `fail()`, rate limiting, or the 500 handler contain `data: null`
+and an `error` object. `HTTPException` errors, such as 404, and validation errors,
+such as 422, still use FastAPI's default format; the error envelope is therefore
+not consistent across all endpoints.
+
+### 5.3 Media
+
+- Internal media uses the public path `/exams/{exam_id}/media/{filename}` and is
+  proxied by Nginx to the MinIO `jlpt-media/exams/` bucket path.
+- External media URLs are rendered directly from `media.path`.
+- The frontend has no uploader or media administration screen.
+
+## 6. Data Requirements
+
+### 6.1 Entities Currently in Use
+
+- `exam_types`, `levels`, `examinations`, `sections`;
+- `questions`, `question_choices`, `question_answers`, `exam_questions`;
+- `media`, `question_media`;
+- `exam_attempts`, `attempt_answers`.
+
+The schema also contains `accounts`, `users`, `roles`, `permissions`, and their
+join tables, but the login logic does not use them.
+
+### 6.2 Primary Data Rules
+
+- Public exams and attempts use UUID `public_id` values; the submission payload
+  still uses a `bigint questionId`; other database relations use `bigint id` values.
+- Each question has at most one correct-answer record in `question_answers`.
+- A question appears at most once within an exam.
+- An attempt has at most one answer row per question because of the composite primary key.
+- Deleting an exam cascades to its sections, question associations, and attempts.
+
+## 7. Current Non-Functional Requirements
+
+### 7.1 Security and Access Control
+
+- NFR-SEC-001: CORS shall be configured through `APP_CORS_ORIGINS`.
+- NFR-SEC-002: Nginx shall rate-limit API requests by IP, API key, write method, and auth route group.
+- NFR-SEC-003: FastAPI shall separately rate-limit reads and writes by API key → user ID → IP.
+- NFR-SEC-004: Redis shall not expose a host port in Docker Compose.
+- NFR-SEC-005: The current version is public and has no authorization protecting exams, answer keys, or attempts.
+
+### 7.2 Availability and Error Handling
+
+- NFR-AVL-001: If Redis is unavailable, the application rate limiter shall log a
+  warning and switch to an in-process counter.
+- NFR-AVL-002: The frontend shall display a message when it cannot reach the API or the API returns an error.
+- NFR-AVL-003: Nginx shall use a 5-second connect timeout and 60-second send/read timeouts for the API.
+- NFR-AVL-004: An unhandled backend error shall return HTTP 500 without exposing the exception.
+
+### 7.3 Observability and Traceability
+
+- NFR-OBS-001: Every backend response shall include `X-Request-Id`, reusing the
+  incoming header or generating a new UUID.
+- NFR-OBS-002: The backend shall log JSON; request logs shall contain the method, path, status, and request ID.
+- NFR-OBS-003: Nginx access logs shall contain the request ID, request time, and upstream response time.
+
+### 7.4 Compatibility and User Experience
+
+- NFR-UX-001: The UI uses React 19/Vite and requires a browser with modern JavaScript support.
+- NFR-UX-002: Selecting answers, flagging questions, navigating, and submitting
+  shall use keyboard-operable button/link elements.
+- NFR-UX-003: Data-loading errors shall use `role="alert"` on catalog and exam pages.
+- NFR-UX-004: Vietnamese and Japanese content shall be stored and rendered as Unicode.
+
+## 8. Baseline Acceptance Criteria
+
+| ID | Criterion |
+|---|---|
+| AC-001 | Opening `#/on-tap` displays review exams grouped by subject; selecting a subject keeps only exams for that subject. |
+| AC-002 | Opening `#/thi-thu` displays only exams with `kind=mock`. |
+| AC-003 | Opening a valid exam displays the metadata, question order, and choices returned by the API. |
+| AC-004 | An unknown exam causes the API to return 404 and the frontend to show an error instead of an empty exam. |
+| AC-005 | Selecting an answer or flagging a question updates the question navigator state. |
+| AC-006 | Submitting or reaching the time limit locks the exam and displays the score and correct answers. |
+| AC-007 | Restarting returns the exam to its initial state and resets the timer. |
+| AC-008 | Creating a valid attempt returns 201; reading and submitting it return the expected PostgreSQL-backed state. |
+| AC-009 | An unknown attempt returns 404; login returns 501 with `not_implemented`. |
+| AC-010 | Health returns 200 when Redis is down and reports `redis=down`. |
+| AC-011 | A request rejected by FastAPI middleware rate limiting returns 429 with `Retry-After` and rate-limit headers. |
+| AC-012 | A backup contains the PostgreSQL dump and MinIO metadata/objects; restore refuses to run without `CONFIRM=1`. |
+
+## 9. Current Limitations and Risks
+
+1. The frontend grades with the `answerKey` included in the exam-details response;
+   answers can be inspected before submission, and the answer-key endpoint is public.
+2. The exam screen does not call the attempt API, so answers, scores, and history
+   are lost on page reload.
+3. The backend does not automatically submit or lock an attempt when time expires
+   and still allows a submitted attempt to be resubmitted.
+4. Creating an attempt for an unknown exam currently raises HTTP 500 instead of a
+   domain-level 404 error.
+5. Submission does not verify that a question belongs to the attempt's exam; an
+   invalid or empty `choiceKey` is stored as a null/incorrect selection.
+6. `durationMinutes` is accepted by the attempt-creation schema but ignored.
+7. HTTP 404/422 errors do not follow the application's `{data, error}` envelope.
+8. Choice HTML and generated HTML are rendered through `dangerouslySetInnerHTML`;
+   imported data must be trusted or sanitized before it enters the database.
+9. `video` media has no dedicated video element, and the order of multiple media
+   items for one question is not preserved after the repository stores them in a `set`.
+10. Health checks Redis only, not PostgreSQL, MinIO, or exam data.
+11. The catalog API does not filter specifically for JLPT/N5; every published exam may appear.
+12. Some pages hard-code “90 minutes” and exam-section descriptions, which may diverge from actual metadata.
+13. The production Nginx baseline does not configure TLS.
+
+## 10. Requirements-to-Code Traceability
+
+| Requirement group | Primary components |
+|---|---|
+| FR-NAV, FR-CAT | `src/frontend/src/App.jsx`, `pages/Home.jsx`, `pages/Review.jsx`, `pages/MockTest.jsx` |
+| FR-EXAM | `api/routers/exams.py`, `repositories/exam_repository.py`, `hooks/useExams.js` |
+| FR-TEST | `pages/Exam.jsx`, `components/QuestionCard.jsx`, `components/ExamSheet.jsx` |
+| FR-ATT | `api/routers/attempts.py`, `services/exam_service.py`, `schemas/exam.py` |
+| FR-SYS | `api/routers/auth.py`, `api/routers/health.py` |
+| FR-OPS | `scripts/backup_storage.sh`, `scripts/restore_storage.sh` |
+| NFR-SEC, NFR-AVL | `infra/nginx/`, `core/middleware/rate_limit.py`, `core/config.py` |
+| NFR-OBS | `core/logging.py`, `core/middleware/request_id.py`, `infra/nginx/nginx.conf` |
+| Data | `infra/postgres/init/schema.sql`, `docs/data-contract.md` |
+
+## 11. Change History
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0 | 2026-11-09 | Created the initial SRS. |
+| 1.1 | 2026-11-10 | Rewrote the SRS around current behavior and separated frontend local grading, backend attempts, and actual limitations. |
+| 1.2 | 2026-11-10 | Grouped functional requirements by Create, Read, Update, and Delete and separated supporting operations outside CRUD. |
+| 1.3 | 2026-11-10 | Translated the complete SRS into English. |

@@ -1,4 +1,4 @@
-/** Endpoint lần thi (skeleton phía server). */
+/** Attempt endpoints exposed by the backend. */
 
 import { api } from './client.js'
 

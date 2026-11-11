@@ -1,4 +1,4 @@
-"""Đề thi: danh sách, chi tiết, đáp án."""
+"""Exam catalog, details, and answer keys."""
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -19,7 +19,7 @@ async def list_exams(service: ExamService = Depends(get_exam_service)):
 async def get_exam(exam_id: str, service: ExamService = Depends(get_exam_service)):
     exam = service.get_exam(exam_id)
     if exam is None:
-        raise HTTPException(status_code=404, detail=f"Không tìm thấy đề thi: {exam_id}")
+        raise HTTPException(status_code=404, detail=f"Exam not found: {exam_id}")
     return ok(exam.model_dump())
 
 
@@ -27,5 +27,5 @@ async def get_exam(exam_id: str, service: ExamService = Depends(get_exam_service
 async def get_answer_key(exam_id: str, service: ExamService = Depends(get_exam_service)):
     answer_key = service.get_answer_key(exam_id)
     if answer_key is None:
-        raise HTTPException(status_code=404, detail=f"Không tìm thấy đề thi: {exam_id}")
+        raise HTTPException(status_code=404, detail=f"Exam not found: {exam_id}")
     return ok(answer_key)

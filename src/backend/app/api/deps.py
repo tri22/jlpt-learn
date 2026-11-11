@@ -9,7 +9,7 @@ from app.services.exam_service import AttemptService, ExamService
 
 @lru_cache
 def get_redis_client():
-    """Trả về Redis client hoặc None nếu không bật/không kết nối được."""
+    """Return a Redis client, or None when Redis is disabled or unavailable."""
     settings: Settings = get_settings()
     if not settings.redis_enabled:
         return None

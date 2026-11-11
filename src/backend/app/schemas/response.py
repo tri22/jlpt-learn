@@ -1,4 +1,4 @@
-"""Schema response dùng chung cho API."""
+"""Shared API response schemas."""
 
 from typing import Any, Generic, TypeVar
 

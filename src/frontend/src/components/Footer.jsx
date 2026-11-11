@@ -9,27 +9,26 @@ export default function Footer({ exams = [] }) {
       <div className="site-footer__inner">
         <div className="footer-about">
           <strong>{SITE_NAME}</strong>
-          <p>Kho đề luyện thi N5 dịch nguyên bản, kèm hình ảnh và audio của đề thi chính thức.</p>
+          <p>JLPT N5 practice exams with images and audio.</p>
         </div>
 
         <dl className="footer-facts">
           <div>
-            <dt>Số đề</dt>
+            <dt>Exams</dt>
             <dd>{exams.length}</dd>
           </div>
           <div>
-            <dt>Tổng câu hỏi</dt>
+            <dt>Total questions</dt>
             <dd>{totalQuestions}</dd>
           </div>
           <div>
-            <dt>Cấu trúc</dt>
-            <dd>Từ vựng · Ngữ pháp · Đọc hiểu · Nghe</dd>
+            <dt>Sections</dt>
+            <dd>Vocabulary · Grammar · Reading · Listening</dd>
           </div>
         </dl>
 
         <p className="footer-note">
-          Nội dung câu hỏi giữ nguyên từ bản HTML gốc. Bản dùng để luyện tập, không thay thế đề thi chính
-          thức của JLPT.
+          Practice content only; this site does not replace the official JLPT examination.
         </p>
       </div>
     </footer>

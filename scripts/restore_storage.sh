@@ -5,18 +5,18 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 backup_dir="${BACKUP:-}"
 
 if [[ -z "$backup_dir" ]]; then
-  echo "Cách dùng: make restore BACKUP=backups/<timestamp> CONFIRM=1" >&2
+  echo "Usage: make restore BACKUP=backups/<timestamp> CONFIRM=1" >&2
   exit 2
 fi
 if [[ "${CONFIRM:-}" != "1" ]]; then
-  echo "Restore sẽ xoá dữ liệu hiện tại. Thêm CONFIRM=1 để tiếp tục." >&2
+  echo "Restore replaces current data. Add CONFIRM=1 to continue." >&2
   exit 2
 fi
 if [[ "$backup_dir" != /* ]]; then
   backup_dir="$repo_root/$backup_dir"
 fi
 if [[ ! -s "$backup_dir/postgres.sql" || ! -f "$backup_dir/minio/metadata.json" ]]; then
-  echo "Backup không hợp lệ: $backup_dir" >&2
+  echo "Invalid backup: $backup_dir" >&2
   exit 2
 fi
 
@@ -39,4 +39,4 @@ docker compose run --rm -T \
   -v "$backup_dir/minio:/restore/minio:ro" \
   minio-tools /app/restore_minio.py
 
-printf 'Đã restore từ: %s\n' "$backup_dir"
+printf 'Restored from: %s\n' "$backup_dir"

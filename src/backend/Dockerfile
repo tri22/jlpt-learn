@@ -19,8 +19,8 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 
-# Chế độ dev: bật auto-reload. Source được bind-mount lúc runtime nên sửa file
-# là server tự restart, không cần build lại image.
+# Development mode: enable auto-reload. Source is bind-mounted at runtime, so
+# the server restarts after file changes without rebuilding the image.
 FROM python:3.12-slim AS dev
 
 ENV PYTHONUNBUFFERED=1 \

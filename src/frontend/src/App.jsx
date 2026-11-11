@@ -13,25 +13,30 @@ import { SITE_NAME } from './constants/site.js'
 import { SUBJECT_LABELS } from './constants/subjects.js'
 import './index.css'
 
-const STATIC_ROUTES = ['thi-thu', 'huong-dan', 'gioi-thieu']
+// Keep existing public hash slugs for bookmark compatibility; route names stay English internally.
+const STATIC_ROUTES = {
+  'thi-thu': 'mock-exams',
+  'huong-dan': 'guide',
+  'gioi-thieu': 'about',
+}
 
 const PAGE_TITLES = {
-  'thi-thu': 'Thi thử',
-  'huong-dan': 'Hướng dẫn',
-  'gioi-thieu': 'Giới thiệu',
+  'mock-exams': 'Mock Exams',
+  guide: 'Guide',
+  about: 'About',
 }
 
 function parseRoute(hash) {
   const match = hash.match(/^#\/bai-thi\/([\w-]+)/)
   if (match) return { name: 'exam', param: match[1] }
 
-  // Ôn tập: #/on-tap hoặc #/on-tap/<môn>
+  // Review: #/on-tap or #/on-tap/<subject>
   const reviewMatch = hash.match(/^#\/on-tap(?:\/([\w-]+))?/)
-  if (reviewMatch) return { name: 'on-tap', param: reviewMatch[1] ?? null }
+  if (reviewMatch) return { name: 'review', param: reviewMatch[1] ?? null }
 
   const staticMatch = hash.match(/^#\/([\w-]+)/)
-  if (staticMatch && STATIC_ROUTES.includes(staticMatch[1])) {
-    return { name: staticMatch[1], param: null }
+  if (staticMatch && Object.hasOwn(STATIC_ROUTES, staticMatch[1])) {
+    return { name: STATIC_ROUTES[staticMatch[1]], param: null }
   }
 
   return { name: 'home', param: null }
@@ -54,32 +59,35 @@ export default function App() {
   }, [])
 
   const exam = route.name === 'exam' ? examDetail : null
-  const subject = route.name === 'on-tap' ? route.param : null
+  const subject = route.name === 'review' ? route.param : null
 
-  // Đổi tiêu đề tab theo trang đang xem
+  // Update the browser title for the current page.
   useEffect(() => {
     if (route.name === 'exam') {
-      document.title = exam ? `${exam.title} — ${SITE_NAME}` : `Đang tải đề thi… — ${SITE_NAME}`
+      document.title = exam ? `${exam.title} — ${SITE_NAME}` : `Loading exam… — ${SITE_NAME}`
       return
     }
     if (route.name === 'home') {
-      document.title = `${SITE_NAME} — Luyện thi JLPT N5`
+      document.title = `${SITE_NAME} — JLPT N5 Practice`
       return
     }
-    if (route.name === 'on-tap') {
+    if (route.name === 'review') {
       const label = subject ? SUBJECT_LABELS[subject] : null
-      document.title = label ? `Ôn tập ${label} — ${SITE_NAME}` : `Ôn tập — ${SITE_NAME}`
+      document.title = label ? `${label} Review — ${SITE_NAME}` : `Review — ${SITE_NAME}`
       return
     }
     document.title = `${PAGE_TITLES[route.name] ?? SITE_NAME} — ${SITE_NAME}`
   }, [route, exam, subject])
 
-  // Đường dẫn tương ứng trang hiện tại, dùng để đánh dấu link đang active
+  // Current route used to mark the active navigation link.
   const currentPath = useMemo(() => {
     if (route.name === 'exam') return '#/bai-thi'
     if (route.name === 'home') return '#/'
-    if (route.name === 'on-tap') return subject ? `#/on-tap/${subject}` : '#/on-tap'
-    return `#/${route.name}`
+    if (route.name === 'review') return subject ? `#/on-tap/${subject}` : '#/on-tap'
+    if (route.name === 'mock-exams') return '#/thi-thu'
+    if (route.name === 'guide') return '#/huong-dan'
+    if (route.name === 'about') return '#/gioi-thieu'
+    return '#/'
   }, [route, subject])
 
   return (
@@ -94,11 +102,11 @@ export default function App() {
       {route.name === 'exam' ? (
         examLoading ? (
           <main className="exam">
-            <p>Đang tải đề thi…</p>
+            <p>Loading exam…</p>
           </main>
         ) : examError ? (
           <main className="exam">
-            <p role="alert">Không tải được đề thi: {examError.message}</p>
+            <p role="alert">Could not load the exam: {examError.message}</p>
           </main>
         ) : exam ? (
           <>
@@ -107,16 +115,16 @@ export default function App() {
           </>
         ) : (
           <main className="exam">
-            <p>Không tìm thấy đề thi.</p>
+            <p>Exam not found.</p>
           </main>
         )
-      ) : route.name === 'on-tap' ? (
+      ) : route.name === 'review' ? (
         <Review exams={exams} subject={subject} loading={loading} error={error} />
-      ) : route.name === 'thi-thu' ? (
+      ) : route.name === 'mock-exams' ? (
         <MockTest exams={exams} loading={loading} error={error} />
-      ) : route.name === 'huong-dan' ? (
+      ) : route.name === 'guide' ? (
         <Guide />
-      ) : route.name === 'gioi-thieu' ? (
+      ) : route.name === 'about' ? (
         <About />
       ) : (
         <Home />

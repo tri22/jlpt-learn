@@ -1,8 +1,8 @@
 /**
- * Client HTTP tập trung cho backend.
+ * Shared HTTP client for the backend.
  *
- * Mọi request đi qua `/api/v1/*` — ở production đó là Nginx (load balancer),
- * ở dev là Vite proxy. Frontend không bao giờ biết địa chỉ instance backend.
+ * Every request uses `/api/v1/*`: Nginx handles it in production and the Vite
+ * proxy handles it in development. The frontend never knows a backend instance address.
  */
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
@@ -32,14 +32,14 @@ async function request(path, { method = 'GET', body, headers = {}, signal } = {}
       ...(body ? { body: JSON.stringify(body) } : {}),
     })
   } catch {
-    throw new ApiError('Không kết nối được tới máy chủ', { status: 0, code: 'network_error' })
+    throw new ApiError('Could not connect to the server', { status: 0, code: 'network_error' })
   }
 
   const payload = await response.json().catch(() => null)
 
   if (!response.ok) {
     const error = payload?.error ?? {}
-    throw new ApiError(error.message ?? `Lỗi ${response.status}`, {
+    throw new ApiError(error.message ?? `Error ${response.status}`, {
       status: response.status,
       code: error.code ?? 'unknown_error',
       details: error.details ?? null,

@@ -64,10 +64,10 @@ export default function Exam({ exam }) {
           <h1>{exam.title}</h1>
           {graded ? (
             <p className="score">
-              Kết quả: {score}/{exam.questionCount}. Đã trả lời {answeredCount}/{exam.questionCount}.
+              Result: {score}/{exam.questionCount}. Answered {answeredCount}/{exam.questionCount}.
             </p>
           ) : (
-            <p>Chọn một đáp án cho mỗi câu. Có thể đánh dấu câu cần xem lại trước khi nộp.</p>
+            <p>Select one answer per question. You can flag questions for review before submitting.</p>
           )}
         </div>
         {exam.questions.map((question) => (

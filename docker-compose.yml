@@ -57,7 +57,7 @@ services:
       - api
     restart: unless-stopped
 
-  # Postgres: chứa dữ liệu đề thi theo schema docs/data-contract.md
+  # PostgreSQL stores exam data using the schema in docs/data-contract.md.
   postgres:
     image: postgres:16-alpine
     environment:
@@ -76,7 +76,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # MinIO: lưu media local theo cấu trúc data/minio/README.md
+  # MinIO stores internal media using the structure documented in docs/data-contract.md.
   minio:
     image: cgr.dev/chainguard/minio:latest
     environment:
@@ -90,7 +90,7 @@ services:
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
     restart: unless-stopped
 
-  # Công cụ backup/restore MinIO; không chạy cùng stack ứng dụng.
+  # MinIO backup/restore tools; not started with the application stack.
   minio-tools:
     build:
       context: .

@@ -1,12 +1,12 @@
-# Kiến trúc hệ thống
+# System Architecture
 
-## Tổng quan
+## Overview
 
 ```text
                         ┌──────────────────────────┐
-   Người dùng ────────▶ │  Nginx (load balancer)   │  ← điểm vào duy nhất
-                        │  • proxy tới backend      │
-                        │  • limit_req theo IP      │  ← tầng rate limit 1
+   User ───────────────▶ │  Nginx (load balancer)   │  ← single entry point
+                        │  • backend proxy          │
+                        │  • IP-based limit_req     │  ← rate-limit layer 1
                         └────────────┬─────────────┘
                                      │
                     ┌────────────────┴────────────────┐
@@ -14,7 +14,7 @@
                      ┌───────────────────────────┐
                      │ FastAPI api                │
                      │ • middleware, CORS         │
-                     │ • rate limit (Redis)       │ ← tầng 2
+                     │ • rate limit (Redis)       │ ← layer 2
                      └──────────────┬────────────┘
                                     ▼
                      ┌───────────────────────────┐
@@ -25,59 +25,59 @@
                      ▼                               ▼
         ┌────────────────────┐          ┌────────────────────┐
         │ PostgreSQL          │          │ React + Vite (SPA) │
-        │ (nguồn dữ liệu)     │          │ gọi /api/v1/*      │
+        │ (data source)        │          │ calls /api/v1/*    │
         └────────────────────┘          └────────────────────┘
 ```
 
-## Thành phần
+## Components
 
 ### Load balancer — `infra/nginx/`
 
-- `nginx.conf`: cấu hình http chung, log format có `request_id` và `upstream_response_time`.
-- `conf.d/upstreams.conf`: `upstream backend_upstream` tới service `api`, và
+- `nginx.conf`: shared HTTP configuration and a log format with `request_id` and `upstream_response_time`.
+- `conf.d/upstreams.conf`: `upstream backend_upstream` targets the `api` service, and
   `upstream frontend_upstream`.
-- `conf.d/rate-limit.conf`: khai báo các `limit_req_zone` (xem `docs/infra.md`).
-- `conf.d/proxy.conf`: định tuyến `/api/`, `/api/v1/auth/`, `/` (SPA), `/healthz`.
+- `conf.d/rate-limit.conf`: declares `limit_req_zone` values; see `docs/infra.md`.
+- `conf.d/proxy.conf`: routes `/api/`, `/api/v1/auth/`, `/` (SPA), and `/healthz`.
 
-Nginx là điểm vào duy nhất từ bên ngoài. Frontend không biết địa chỉ instance backend.
+Nginx is the only external entry point. The frontend does not know backend instance addresses.
 
 ### Backend — `src/backend/app/`
 
-- `main.py`: khởi tạo FastAPI, middleware, đăng ký router, error handler 500.
-- `core/config.py`: cấu hình qua biến môi trường, prefix `APP_`.
-- `core/logging.py`: log JSON, gắn `request_id`.
-- `core/middleware/request_id.py`: sinh/gắn `X-Request-Id` xuyên suốt Nginx → backend.
-- `core/middleware/rate_limit.py`: token bucket tầng 2, bộ đếm trên Redis (Lua script),
-  fallback in-memory nếu Redis lỗi.
+- `main.py`: initializes FastAPI, middleware, routers, and the HTTP 500 handler.
+- `core/config.py`: configures the application through `APP_` environment variables.
+- `core/logging.py`: emits JSON logs with `request_id`.
+- `core/middleware/request_id.py`: creates/propagates `X-Request-Id` through Nginx and the backend.
+- `core/middleware/rate_limit.py`: layer-2 token bucket backed by Redis through Lua,
+  with an in-memory fallback when Redis fails.
 - `api/routers/`: `health`, `exams`, `attempts`, `auth`.
-- `repositories/exam_repository.py`: đọc đề thi từ PostgreSQL.
-- `services/exam_service.py`: nghiệp vụ đề thi + lần thi (skeleton).
-- `db/session.py`: chỗ để gắn SQLAlchemy/Postgres sau này.
+- `repositories/exam_repository.py`: reads exams from PostgreSQL.
+- `services/exam_service.py`: exam and attempt business logic.
+- `db/session.py`: placeholder for a future SQLAlchemy session.
 
 ### Frontend — `src/frontend/src/`
 
-- `api/client.js`: HTTP client dùng chung, envelope `{data, error}`, xử lý `ApiError`.
-- `api/exams.js`, `api/attempts.js`: endpoint theo từng nhóm.
-- `hooks/useExams.js`: hook tải danh sách đề và chi tiết đề, có trạng thái loading/error.
-- `pages/Home.jsx`, `pages/Exam.jsx`: màn hình danh sách và làm bài.
-- Dữ liệu **không** còn import JSON tĩnh — mọi thứ đi qua API.
+- `api/client.js`: shared HTTP client for the `{data, error}` envelope and `ApiError`.
+- `api/exams.js`, `api/attempts.js`: endpoints grouped by resource.
+- `hooks/useExams.js`: loads the exam catalog/details with loading and error states.
+- `pages/Home.jsx`, `pages/Exam.jsx`: catalog entry and exam screens.
+- The frontend does **not** import static JSON; all data goes through the API.
 
-### Dữ liệu
+### Data
 
-- `infra/postgres/init/schema.sql`: schema Postgres dùng khi khởi tạo volume.
-- Media được lưu và phục vụ từ MinIO.
+- `infra/postgres/init/schema.sql`: PostgreSQL schema used when the volume is initialized.
+- Media is stored and served by MinIO.
 
-## Ranh giới trách nhiệm
+## Responsibility Boundaries
 
-- Crawler chỉ thu thập và chuẩn hóa dữ liệu; không tự suy đoán đáp án đúng.
-- Backend chỉ đọc dữ liệu đã chuẩn hóa; không phụ thuộc HTML thô.
-- Frontend không biết instance backend nào đang phục vụ; chỉ gọi `/api/v1/*`.
-- Rate limit tầng 1 (Nginx) chặn flood theo IP ở edge; tầng 2 tính theo danh tính
-  người dùng (API key → user → IP) nên công bằng hơn khi nhiều người dùng chung IP.
+- Data ingestion is responsible for collecting and normalizing data, not inferring answers.
+- The backend reads normalized data and does not depend on raw HTML.
+- The frontend only calls `/api/v1/*` and does not know which backend instance serves it.
+- Layer 1 (Nginx) blocks IP floods at the edge; layer 2 keys by caller identity
+  (API key → user → IP) for fairness when users share an IP.
 
-## Giới hạn đã biết
+## Known Limitations
 
-- Backend runtime đọc đề thi và lưu attempt trong PostgreSQL; JSON/SQL dump chỉ là
-  nguồn nạp dữ liệu.
-- Chưa có xác thực thật: `/api/v1/auth/login` trả 501.
-- Media có thể là URL ngoài hoặc không tải được.
+- The backend reads exams and stores attempts in PostgreSQL; JSON/SQL dumps are
+  data-loading sources only.
+- Authentication is not implemented: `/api/v1/auth/login` returns 501.
+- Media may use external URLs and may be unavailable.

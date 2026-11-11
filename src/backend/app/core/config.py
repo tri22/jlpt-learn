@@ -1,4 +1,4 @@
-"""Cấu hình runtime, đọc từ biến môi trường (prefix APP_)."""
+"""Runtime configuration loaded from environment variables with the APP_ prefix."""
 
 from functools import lru_cache
 
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
 
-    # Dữ liệu runtime
+    # Runtime data
     database_url: str = "postgresql://jlpt:jlpt_dev_password@postgres:5432/jlpt"
     minio_endpoint: str = "minio:9000"
     minio_bucket: str = "jlpt-media"
@@ -25,13 +25,13 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     redis_enabled: bool = True
 
-    # Rate limit tầng ứng dụng (tầng Nginx là lớp lọc thô)
+    # Application rate limiting (Nginx provides the coarse edge layer)
     rate_limit_enabled: bool = True
     rate_limit_per_minute: int = 60
     rate_limit_write_per_minute: int = 20
     rate_limit_burst: int = 10
 
-    # CORS origins dạng chuỗi phân tách bởi dấu phẩy cho biến môi trường
+    # CORS origins supplied as an environment-backed list
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins if origin.strip()]

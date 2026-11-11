@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 
 /**
- * Gọi `onDismiss` khi người dùng bấm ra ngoài phần tử `ref` hoặc nhấn Escape.
+ * Call `onDismiss` when the user clicks outside `ref` or presses Escape.
  *
- * Dùng cho menu di động và dropdown để chúng tự đóng.
+ * Used by mobile menus and dropdowns so they close themselves.
  *
- * @param {import('react').RefObject<HTMLElement>} ref phần tử cần theo dõi
- * @param {boolean} active chỉ lắng nghe khi đang mở
- * @param {() => void} onDismiss hàm được gọi khi cần đóng
+ * @param {import('react').RefObject<HTMLElement>} ref element to monitor
+ * @param {boolean} active listen only while open
+ * @param {() => void} onDismiss callback invoked to close the element
  */
 export function useDismissOnOutside(ref, active, onDismiss) {
   useEffect(() => {

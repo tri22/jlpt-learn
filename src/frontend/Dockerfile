@@ -5,8 +5,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Chế độ dev: chạy Vite dev server (HMR). Source được bind-mount lúc runtime
-# nên không cần build lại image khi sửa code.
+# Development mode: run the Vite dev server with HMR. Source is bind-mounted at
+# runtime, so code changes do not require rebuilding the image.
 FROM deps AS dev
 
 COPY . .

@@ -1,4 +1,4 @@
-"""Logging có cấu trúc, gắn request_id vào mọi record."""
+"""Structured logging that attaches request_id to every record."""
 
 import json
 import logging
@@ -32,7 +32,7 @@ def configure_logging() -> None:
     root.handlers = [handler]
     root.setLevel(logging.DEBUG if settings.debug else logging.INFO)
 
-    # Uvicorn dùng logger riêng, ép về cùng handler để log thống nhất
+    # Route Uvicorn loggers through the same handler for consistent output.
     for name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
         logger = logging.getLogger(name)
         logger.handlers = [handler]

@@ -1,4 +1,4 @@
-"""Lần thi: tạo, lấy, nộp bài (skeleton)."""
+"""Create, retrieve, and submit attempts."""
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -20,7 +20,7 @@ async def create_attempt(payload: AttemptCreate, service: AttemptService = Depen
 async def get_attempt(attempt_id: str, service: AttemptService = Depends(get_attempt_service)):
     attempt = service.get(attempt_id)
     if attempt is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy lần thi")
+        raise HTTPException(status_code=404, detail="Attempt not found")
     return ok(attempt.model_dump())
 
 
@@ -32,5 +32,5 @@ async def submit_attempt(
 ):
     attempt = service.submit(attempt_id, payload)
     if attempt is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy lần thi")
+        raise HTTPException(status_code=404, detail="Attempt not found")
     return ok(attempt.model_dump())

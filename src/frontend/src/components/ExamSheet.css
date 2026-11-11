@@ -149,7 +149,7 @@
   border-color: #efd3a4;
 }
 
-/* Thanh cố định đáy màn hình, chỉ hiện trên màn hình hẹp */
+/* Fixed bottom bar shown only on narrow screens. */
 .sheet-bar {
   display: none;
 }

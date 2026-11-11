@@ -1,4 +1,4 @@
-"""Placeholder. Xác thực thật (JWT/OAuth) sẽ gắn sau — xem docs/data-contract.md (ACCOUNTS/ROLES)."""
+"""Authentication placeholder; see ACCOUNTS/ROLES in docs/data-contract.md."""
 
 from fastapi import APIRouter
 
@@ -11,6 +11,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def login():
     return fail(
         code="not_implemented",
-        message="Đăng nhập chưa được triển khai — cần nối với bảng ACCOUNTS/ROLES.",
+        message="Login is not implemented; it must be connected to the ACCOUNTS/ROLES tables.",
         status_code=501,
     )

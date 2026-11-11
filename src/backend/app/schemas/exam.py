@@ -1,10 +1,10 @@
-"""Pydantic schemas cho các resource chính."""
+"""Pydantic schemas for core resources."""
 
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-# Loại đề: đề đơn môn dùng để ôn tập, đề tổng hợp dùng để thi thử.
+# Exam kinds: single-subject review exams and comprehensive mock exams.
 KIND_REVIEW = "review"
 KIND_MOCK = "mock"
 
@@ -29,9 +29,9 @@ class ExamSummary(BaseModel):
     questionCount: int
     durationMinutes: int
     mode: str = "full"
-    # "review" = đề đơn môn để ôn tập, "mock" = đề tổng hợp để thi thử
+    # "review" = single-subject practice, "mock" = comprehensive mock exam
     kind: str = KIND_REVIEW
-    # Môn của đề đơn môn (None với đề tổng hợp)
+    # Subject for a single-subject exam (None for a comprehensive exam)
     subject: str | None = None
     subjectLabel: str | None = None
 

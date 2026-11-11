@@ -1,4 +1,4 @@
-/** Các endpoint liên quan đến đề thi. */
+/** Exam endpoints. */
 
 import { api } from './client.js'
 

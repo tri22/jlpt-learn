@@ -5,7 +5,7 @@ import './Review.css'
 export default function Review({ exams = [], subject = null, loading = false, error = null }) {
   const reviewExams = exams.filter((exam) => exam.kind === 'review')
 
-  // subject = null nghĩa là xem tất cả, khi đó nhóm theo môn
+  // subject = null shows every subject, grouped by subject.
   const groups = subject
     ? [
         {
@@ -28,22 +28,22 @@ export default function Review({ exams = [], subject = null, loading = false, er
   return (
     <main className="review">
       <div className="review-head">
-        <h1>{subject ? `Ôn tập · ${SUBJECT_LABELS[subject] ?? subject}` : 'Ôn tập'}</h1>
+        <h1>{subject ? `Review · ${SUBJECT_LABELS[subject] ?? subject}` : 'Review'}</h1>
         <p>
-          {`${visibleExams.length} đề đơn môn, ${totalQuestions} câu hỏi. Làm từng đề ngắn để xác định môn `}
-          nào còn yếu rồi tập trung vào môn đó.
+          {`${visibleExams.length} subject exams, ${totalQuestions} questions. Use short exams to identify `}
+          weak subjects and focus your study.
         </p>
       </div>
 
-      {loading ? <p>Đang tải danh sách đề…</p> : null}
-      {error ? <p role="alert">Không tải được danh sách đề: {error.message}</p> : null}
+      {loading ? <p>Loading exams…</p> : null}
+      {error ? <p role="alert">Could not load exams: {error.message}</p> : null}
 
       {!loading && !error
         ? groups.map((group) => (
             <section key={group.subject} className="review-group">
               <div className="review-group__head">
                 <h2>{group.label}</h2>
-                <span className="review-group__count">{group.items.length} đề</span>
+                <span className="review-group__count">{group.items.length} exams</span>
               </div>
               <ExamList exams={group.items} />
             </section>

@@ -1,30 +1,30 @@
 # JLPT Learn
 
-Nền tảng luyện thi JLPT N5: API FastAPI phục vụ dữ liệu,
-frontend React, Nginx làm load balancer kèm rate limit 2 tầng.
+JLPT N5 practice platform with a FastAPI data API, React frontend, and Nginx
+load balancer with two-layer rate limiting.
 
-## Tài liệu
+## Documentation
 
-- [Kiến trúc hệ thống](docs/architecture.md)
-- [Hạ tầng: load balancer & rate limit](docs/infra.md)
-- [Tài liệu phát triển](docs/development.md)
-- [Cấu trúc DB](docs/data-contract.md)
-- [Vận hành](docs/operations.md)
+- [System architecture](docs/architecture.md)
+- [Infrastructure: load balancing and rate limiting](docs/infra.md)
+- [Development guide](docs/development.md)
+- [Database contract](docs/data-contract.md)
+- [Operations](docs/operations.md)
 
-## Cấu trúc
+## Structure
 
 ```text
 .
 ├── docker-compose.yml        nginx + api + redis + frontend + postgres + minio
-├── Makefile                  lệnh vận hành gọn
-├── docker-compose.dev.yml    biến thể dev: hot reload frontend + backend
+├── Makefile                  concise operational commands
+├── docker-compose.dev.yml    development variant with frontend/backend hot reload
 ├── .env.example
 ├── docs/
 ├── infra/
 │   ├── nginx/                nginx.conf + conf.d (upstream, rate limit, proxy)
 │   ├── redis/                redis.conf + start-redis.sh
 │   └── postgres/init/        schema.sql (Postgres)
-├── scripts/                  backup/restore PostgreSQL và MinIO
+├── scripts/                  PostgreSQL and MinIO backup/restore
 └── src/
     ├── backend/              FastAPI
     └── frontend/             React + Vite
@@ -41,7 +41,7 @@ make up
 
 - App: <http://localhost:8080>
 - API health: <http://localhost:8080/api/v1/health>
-- Postgres: `localhost:5433` (user `jlpt`, db `jlpt`) — schema + data được nạp tự động
+- PostgreSQL: `localhost:5433` (user `jlpt`, database `jlpt`) — schema is initialized automatically
 
 ### Dev mode (hot reload)
 
@@ -49,20 +49,20 @@ make up
 make dev
 ```
 
-- Frontend: Vite dev server (HMR) — sửa file `.jsx`/`.css` là trình duyệt tự cập nhật.
-- Backend: uvicorn `--reload` — sửa file `.py` là server tự restart.
-- Vẫn đi qua Nginx ở <http://localhost:8080>, không cần build lại image.
+- Frontend: Vite dev server with HMR updates the browser after `.jsx`/`.css` changes.
+- Backend: uvicorn `--reload` restarts the server after `.py` changes.
+- Traffic still goes through Nginx at <http://localhost:8080>; image rebuilds are not required.
 
 ```bash
-make dev-logs   # xem log realtime
-make dev-down   # dừng
+make dev-logs   # follow logs
+make dev-down   # stop
 ```
 
-Lưu ý: source được bind-mount nên chỉnh sửa trên host là thấy ngay trong container.
-Nếu hệ thống file không phát sự kiện (một số mount trên Docker Desktop),
-đặt `WATCH_USEPOLLING=true` trong `.env`.
+Source is bind-mounted, so host changes appear immediately in the containers.
+If the filesystem does not emit events for a mount, set `WATCH_USEPOLLING=true`
+in `.env`.
 
-### Chạy riêng từng phần
+### Run components separately
 
 ```bash
 # Backend

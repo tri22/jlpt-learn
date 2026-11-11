@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Lấy mật khẩu Redis từ biến môi trường, mặc định là giá trị dev.
-# Redis không publish ra host nên mật khẩu này chỉ bảo vệ trong docker network.
+# Read the Redis password from the environment, with a development default.
+# Redis is not exposed to the host, so this password protects the Docker network.
 set -euo pipefail
 
 REDIS_PASSWORD="${REDIS_PASSWORD:-jlpt_dev_password}"

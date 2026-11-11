@@ -1,4 +1,4 @@
-# Cấu trúc DB
+# Database Structure
 
 ```mermaid
 erDiagram
@@ -78,7 +78,7 @@ erDiagram
         varchar title
         varchar mode "reading|listening|full|kanji|vocab|grammar"
         bigint exam_type_id FK
-        bigint level_id FK "nullable nếu bài test không có level"
+        bigint level_id FK "nullable when an exam has no level"
         int duration_min
         int question_count
         boolean published
@@ -156,10 +156,10 @@ erDiagram
     }
 ```
 
-## Cấu trúc lưu trữ MinIO
+## MinIO Storage Structure
 
-Media local được lưu trong bucket `jlpt-media`; `media.path` trong SQL là public
-path tương ứng với object key trong MinIO:
+Internal media is stored in the `jlpt-media` bucket. The SQL `media.path` value
+is the public path corresponding to the MinIO object key:
 
 ```text
 Bucket: jlpt-media
@@ -169,7 +169,7 @@ Bucket: jlpt-media
             └── {filename}
 ```
 
-Ví dụ:
+Example:
 
 ```text
 Bucket: jlpt-media
@@ -177,20 +177,19 @@ Object: exams/de-1/media/m-3c0c33d196ac.mp3
 Public path: /exams/de-1/media/m-3c0c33d196ac.mp3
 ```
 
-Metadata object và nguồn file local nằm trong
-MinIO là nơi lưu object media. Media URL ngoài không
-upload vào MinIO; `media.path` giữ nguyên URL nguồn.
+MinIO stores media objects and their metadata. External media URLs are not
+uploaded to MinIO; `media.path` preserves the source URL.
 
-## Mẫu dữ liệu
+## Data Examples
 
-`EXAM_TYPES` là nhóm bài test, ví dụ `JLPT`, `NAS_TEST`, `TOEIC`. Mỗi nhóm có thể
-có bộ `LEVELS` riêng; ví dụ JLPT có `N5`, `N4`, `N3`, `N2`, `N1`. Với bài test
-không có level, `level_id` được để `null`.
+`EXAM_TYPES` groups exam families such as `JLPT`, `NAS_TEST`, and `TOEIC`. Each
+family may define its own `LEVELS`; for example, JLPT has `N5`, `N4`, `N3`, `N2`,
+and `N1`. Exams without a level use a null `level_id`.
 
-Khi tạo `EXAMINATIONS`, `level_id` phải thuộc cùng `exam_type_id`; ví dụ không
-được gắn level `N5` của JLPT cho một đề có `exam_type_id` là TOEIC.
+When creating `EXAMINATIONS`, `level_id` must belong to the same `exam_type_id`.
+For example, a TOEIC exam cannot use the JLPT `N5` level.
 
-Mẫu danh mục loại bài test và level:
+Example exam-type and level catalog:
 
 ```json
 {
@@ -234,7 +233,7 @@ Mẫu danh mục loại bài test và level:
   "examinations": {
     "id": 101,
     "public_id": "01932f7e-3c1a-7b21-9f4a-2c8e6d0b1a55",
-    "title": "Đề Thi JLPT N5 – Đề 1 10/2024",
+    "title": "JLPT N5 Exam 1 — 10/2024",
     "mode": "full",
     "exam_type_id": 1,
     "level_id": 11,
@@ -305,16 +304,16 @@ Mẫu danh mục loại bài test và level:
 }
 ```
 
-`public_id` là giá trị dùng cho API/URL; các cột `*_id` trong DB vẫn tham chiếu
-`BIGINT id` nội bộ để join nhanh. `user_id = null` minh họa attempt ẩn danh theo
-phạm vi hiện tại.
+`public_id` is used by APIs and URLs. Database `*_id` columns still reference
+internal `BIGINT id` values for efficient joins. `user_id = null` represents an
+anonymous attempt in the current scope.
 
-### Mẫu JSON nguồn đề tổng hợp (`data/exams/de-1.json`)
+### Comprehensive Exam Source JSON (`data/exams/de-1.json`)
 
 ```json
 {
   "id": "1",
-  "title": "Đề Thi JLPT N5 – Đề 1 10/2024",
+  "title": "JLPT N5 Exam 1 — 10/2024",
   "mode": "full",
   "questionCount": 90,
   "durationMinutes": 90,
@@ -325,8 +324,8 @@ phạm vi hiện tại.
   "questions": [
     {
       "id": 1,
-      "label": "Câu 1",
-      "kind": "Nhận biết",
+      "label": "Question 1",
+      "kind": "Recognition",
       "quizHtml": "<p>1. 新（あたら）しい カメラですね。</p>",
       "choices": [
         { "key": "A", "html": "1. あらたしい" },
@@ -339,12 +338,12 @@ phạm vi hiện tại.
 }
 ```
 
-Response summary tương ứng từ `GET /api/v1/exams`:
+Corresponding summary response from `GET /api/v1/exams`:
 
 ```json
 {
   "id": "de-1",
-  "title": "Đề Thi JLPT N5 – Đề 1 10/2024",
+  "title": "JLPT N5 Exam 1 — 10/2024",
   "questionCount": 90,
   "durationMinutes": 90,
   "kind": "mock",
@@ -353,7 +352,7 @@ Response summary tương ứng từ `GET /api/v1/exams`:
 }
 ```
 
-### Mẫu JSON nguồn đề theo môn (`data/exams/jt4y-n5-grammar-14.json`)
+### Subject Exam Source JSON (`data/exams/jt4y-n5-grammar-14.json`)
 
 ```json
 {
@@ -368,8 +367,8 @@ Response summary tương ứng từ `GET /api/v1/exams`:
   "questions": [
     {
       "id": 1,
-      "label": "Câu 1",
-      "kind": "Ngữ pháp",
+      "label": "Question 1",
+      "kind": "Grammar",
       "quizHtml": "おとうとはいしゃ _______ なりました。",
       "choices": [
         { "key": "A", "html": "を" },
@@ -382,7 +381,7 @@ Response summary tương ứng từ `GET /api/v1/exams`:
 }
 ```
 
-Response summary tương ứng:
+Corresponding summary response:
 
 ```json
 {
@@ -392,13 +391,13 @@ Response summary tương ứng:
   "durationMinutes": 15,
   "kind": "review",
   "subject": "grammar",
-  "subjectLabel": "Ngữ pháp"
+  "subjectLabel": "Grammar"
 }
 ```
 
-### Mẫu tạo và nộp attempt
+### Create and Submit Attempt Examples
 
-Tạo attempt:
+Create an attempt:
 
 ```json
 {
@@ -407,7 +406,7 @@ Tạo attempt:
 }
 ```
 
-Nộp attempt:
+Submit an attempt:
 
 ```json
 {
@@ -424,7 +423,7 @@ Nộp attempt:
 }
 ```
 
-Response attempt hiện tại:
+Current attempt response:
 
 ```json
 {
@@ -438,10 +437,10 @@ Response attempt hiện tại:
 }
 ```
 
-`selection_count` tính cả lần chọn đầu tiên; `change_count` chỉ tính số lần đổi
-sang lựa chọn khác. `is_correct` có thể `null` khi attempt chưa nộp và được backend
-tính sau khi nộp.
+`selection_count` includes the first selection; `change_count` counts only changes
+to another choice. `is_correct` may be null before submission and is calculated
+by the backend after submission.
 
-`score` và `maxScore` hiện có trong schema nhưng chưa được `AttemptService` tính
-trong skeleton. Khi triển khai chấm điểm thật, câu trả lời phải tham chiếu bằng
-`question_id` và `selected_choice_id`, không phụ thuộc vị trí của câu hỏi trong frontend.
+`score` and `maxScore` exist in the schema but were not calculated by the original
+`AttemptService` skeleton. Grading must reference `question_id` and
+`selected_choice_id`, not the question's frontend position.

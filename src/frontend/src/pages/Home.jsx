@@ -4,17 +4,17 @@ import './Home.css'
 const ENTRIES = [
   {
     href: '#/on-tap',
-    kicker: 'Ôn tập',
-    title: 'Luyện từng kĩ năng',
-    desc: 'Từ vựng, Ngữ pháp, Kanji, Đọc hiểu, Nghe hiểu.',
-    cta: 'Bắt đầu ôn tập',
+    kicker: 'Review',
+    title: 'Practice individual skills',
+    desc: 'Vocabulary, Grammar, Kanji, Reading, and Listening.',
+    cta: 'Start reviewing',
   },
   {
     href: '#/thi-thu',
-    kicker: 'Thi thử',
-    title: 'Đề tổng hợp',
-    desc: '90 câu trong 90 phút theo format kỳ thi JLPT.',
-    cta: 'Vào phòng thi',
+    kicker: 'Mock exams',
+    title: 'Comprehensive exams',
+    desc: '90 questions in 90 minutes using the JLPT format.',
+    cta: 'Start a mock exam',
   },
 ]
 
@@ -24,7 +24,7 @@ export default function Home() {
       <div className="home-head">
         <h1>{SITE_NAME}</h1>
         <p>
-          Nền tảng luyện thi JLPT miễn phí.
+          Free online JLPT practice.
         </p>
       </div>
 

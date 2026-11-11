@@ -19,14 +19,14 @@ export default function ExamSheet({
     <aside className="sheet">
       <div className="sheet-stats">
         <div>
-          <span>Số câu đã làm</span>
+          <span>Answered</span>
           <strong>
             {graded ? score : answeredCount}
             <small>/{questionCount}</small>
           </strong>
         </div>
         <div>
-          <span>{graded ? 'Kết quả' : 'Thời gian còn lại'}</span>
+          <span>{graded ? 'Result' : 'Time remaining'}</span>
           <strong className={secondsLeft < 300 && !graded ? 'urgent' : ''}>
             {graded ? `${score}/${questionCount}` : formatTime(secondsLeft)}
           </strong>
@@ -52,7 +52,7 @@ export default function ExamSheet({
                 <button
                   type="button"
                   className={status}
-                  aria-label={`Câu ${index + 1}`}
+                  aria-label={`Question ${index + 1}`}
                   onClick={() => onJumpTo(question.id)}
                 >
                   {index + 1}
@@ -64,30 +64,30 @@ export default function ExamSheet({
       </div>
 
       <button type="button" className="primary block" onClick={graded ? onRestart : onSubmit}>
-        {graded ? 'Làm lại' : 'Nộp bài'}
+        {graded ? 'Restart' : 'Submit'}
       </button>
 
       <ul className="legend">
         <li>
-          <i className="swatch done" /> Câu đã làm
+          <i className="swatch done" /> Answered
         </li>
         <li>
-          <i className="swatch" /> Câu chưa làm
+          <i className="swatch" /> Unanswered
         </li>
         <li>
-          <i className="swatch flagged" /> Câu cần kiểm tra lại
+          <i className="swatch flagged" /> Flagged for review
         </li>
       </ul>
 
-      {/* Trên màn hình hẹp, sidebar bị đẩy xuống dưới nên cần một thanh cố định
-          đáy màn hình để luôn thấy tiến độ và nút nộp bài. */}
+      {/* On narrow screens, the sidebar moves below the exam. Keep progress and
+          submission controls visible in a fixed bottom bar. */}
       <div className="sheet-bar">
         <span>
           {answeredCount}/{questionCount}
         </span>
-        <span>{graded ? `${score} đúng` : formatTime(secondsLeft)}</span>
+        <span>{graded ? `${score} correct` : formatTime(secondsLeft)}</span>
         <button type="button" onClick={graded ? onRestart : onSubmit}>
-          {graded ? 'Làm lại' : 'Nộp bài'}
+          {graded ? 'Restart' : 'Submit'}
         </button>
       </div>
     </aside>

@@ -1,4 +1,4 @@
-"""Health check: liveness + trạng thái phụ thuộc (Redis)."""
+"""Health check for liveness and Redis dependency status."""
 
 from fastapi import APIRouter, Depends
 

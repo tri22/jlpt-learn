@@ -3,14 +3,14 @@ import { useDismissOnOutside } from '../hooks/useDismissOnOutside.js'
 import './DropdownMenu.css'
 
 /**
- * Menu xổ xuống dùng chung: một nút bấm mở ra danh sách lựa chọn.
+ * Shared dropdown menu: a button opens a list of options.
  *
- * @param {string} label nhãn hiển thị trên nút bấm
- * @param {Array<{id: string, label: string}>} items các lựa chọn
- * @param {string|null} value lựa chọn đang active
- * @param {(id: string) => void} onSelect gọi khi chọn một mục
- * @param {boolean} active nút bấm được đánh dấu active
- * @param {string} className class bổ sung cho phần tử gốc
+ * @param {string} label button label
+ * @param {Array<{id: string, label: string}>} items available options
+ * @param {string|null} value active option
+ * @param {(id: string) => void} onSelect called when an option is selected
+ * @param {boolean} active whether the button is marked active
+ * @param {string} className additional class for the root element
  */
 export default function DropdownMenu({
   label,

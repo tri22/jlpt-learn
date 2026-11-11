@@ -4,5 +4,5 @@ dist
 Dockerfile
 .dockerignore
 
-# Media bài thi không bake vào image: được mount runtime từ ./dataset
+# Exam media is not baked into the image; it is mounted from ./dataset at runtime.
 public/exams

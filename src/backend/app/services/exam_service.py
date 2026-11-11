@@ -1,4 +1,4 @@
-"""Business logic cho đề thi và lần thi."""
+"""Business logic for exams and attempts."""
 
 import uuid
 
@@ -21,7 +21,7 @@ class ExamService:
 
 
 class AttemptService:
-    """Lưu và chấm lần thi trong PostgreSQL."""
+    """Persist and grade attempts in PostgreSQL."""
 
     def __init__(self, database_url: str):
         self.database_url = database_url

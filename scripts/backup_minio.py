@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sao lưu toàn bộ object trong một bucket MinIO."""
+"""Back up every object in a MinIO bucket."""
 
 import json
 import os
@@ -22,7 +22,7 @@ def main() -> None:
         secure=False,
     )
     if not client.bucket_exists(bucket):
-        raise RuntimeError(f"MinIO bucket không tồn tại: {bucket}")
+        raise RuntimeError(f"MinIO bucket does not exist: {bucket}")
 
     objects = []
     for item in client.list_objects(bucket, recursive=True):
@@ -50,7 +50,7 @@ def main() -> None:
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    print(f"Đã backup {len(objects)} object từ MinIO bucket {bucket}")
+    print(f"Backed up {len(objects)} objects from MinIO bucket {bucket}")
 
 
 if __name__ == "__main__":

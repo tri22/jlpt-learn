@@ -1,4 +1,4 @@
-"""Entrypoint của FastAPI."""
+"""FastAPI entry point."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -22,7 +22,7 @@ logger = logging.getLogger("app.main")
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info(
-        "Khởi động %s (env=%s, database=%s)",
+        "Starting %s (env=%s, database=%s)",
         settings.app_name,
         settings.environment,
         settings.database_url.split("@")[-1],
@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     client = get_redis_client()
     if client is not None:
         await client.aclose()
-    logger.info("Đã dừng %s", settings.app_name)
+    logger.info("Stopped %s", settings.app_name)
 
 
 def create_app() -> FastAPI:
@@ -40,7 +40,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="JLPT Learn API",
         version="0.1.0",
-        description="Skeleton API: đề thi, lần thi, health. Có rate limit 2 tầng (Nginx + Redis).",
+        description="Skeleton API for exams, attempts, and health with two-layer rate limiting (Nginx + Redis).",
         lifespan=lifespan,
     )
 
@@ -61,12 +61,12 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
-        logger.exception("Lỗi không xử lý được: %s %s", request.method, request.url.path)
+        logger.exception("Unhandled error: %s %s", request.method, request.url.path)
         return JSONResponse(
             status_code=500,
             content={
                 "data": None,
-                "error": {"code": "internal_error", "message": "Lỗi máy chủ nội bộ", "details": None},
+                "error": {"code": "internal_error", "message": "Internal server error", "details": None},
             },
         )
 

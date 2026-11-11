@@ -1,4 +1,4 @@
-"""Test khung: đảm bảo app khởi động và các endpoint cơ bản trả đúng envelope."""
+"""Smoke tests: ensure the app starts and core endpoints return the expected envelope."""
 
 import json
 import uuid
@@ -17,16 +17,16 @@ from app.schemas.exam import Attempt, AttemptSubmit, ExamDetail, ExamSummary
 def exam_data_dir(tmp_path: Path) -> Path:
     payload = {
         "id": "de-test",
-        "title": "Đề kiểm thử",
+        "title": "Test exam",
         "questionCount": 1,
         "durationMinutes": 30,
         "answerKey": {"1": "A"},
         "questions": [
             {
                 "id": 1,
-                "label": "Câu 1",
-                "kind": "Điện từ",
-                "quizHtml": "<p> câu hỏi </p>",
+                "label": "Question 1",
+                "kind": "Electromagnetism",
+                "quizHtml": "<p> question </p>",
                 "choices": [{"key": "A", "html": "<div>A</div>"}],
             }
         ],

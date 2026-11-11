@@ -5,15 +5,15 @@ import { SITE_NAME, SITE_TAGLINE } from '../constants/site.js'
 import { SUBJECTS } from '../constants/subjects.js'
 import './Navbar.css'
 
-/** Các trang tĩnh trong ứng dụng. */
+/** Static application pages. */
 const NAV_LINKS = [
-  { href: '#/thi-thu', label: 'Thi thử' },
-  { href: '#/huong-dan', label: 'Hướng dẫn' },
-  { href: '#/gioi-thieu', label: 'Giới thiệu' },
+  { href: '#/thi-thu', label: 'Mock Exams' },
+  { href: '#/huong-dan', label: 'Guide' },
+  { href: '#/gioi-thieu', label: 'About' },
 ]
 
-/** Môn ôn tập, thêm mục "Tất cả môn" ở đầu. */
-const REVIEW_ITEMS = [{ id: 'all', label: 'Tất cả môn' }, ...SUBJECTS]
+/** Review subjects with an all-subjects option first. */
+const REVIEW_ITEMS = [{ id: 'all', label: 'All subjects' }, ...SUBJECTS]
 
 export default function Navbar({ current = '', subject = null, onSubjectChange }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -29,7 +29,7 @@ export default function Navbar({ current = '', subject = null, onSubjectChange }
   }
 
   return (
-    <nav className="navbar" ref={menuRef} aria-label="Điều hướng chính">
+    <nav className="navbar" ref={menuRef} aria-label="Main navigation">
       <div className="navbar__inner">
         <a className="navbar__brand" href="#/">
           <span className="navbar__seal" aria-hidden="true">
@@ -48,13 +48,13 @@ export default function Navbar({ current = '', subject = null, onSubjectChange }
           aria-controls="navbar-menu"
           onClick={() => setMenuOpen((value) => !value)}
         >
-          <span className="sr-only">Mở menu</span>
+          <span className="sr-only">Open menu</span>
           <span className="navbar__bars" aria-hidden="true" />
         </button>
 
         <ul id="navbar-menu" className={`navbar__menu${menuOpen ? ' is-open' : ''}`}>
           <DropdownMenu
-            label="Ôn tập"
+            label="Review"
             items={REVIEW_ITEMS}
             value={subject ?? 'all'}
             active={current.startsWith('#/on-tap')}

@@ -1,10 +1,10 @@
-"""Rate limit tầng ứng dụng.
+"""Application-level rate limiting.
 
-Nginx đã lọc flood theo IP ở tầng edge. Tầng này tính theo *danh tính* người dùng
-(API key -> user id -> IP) nên công bằng hơn khi nhiều người dùng chung IP/NAT.
+Nginx already filters IP-based floods at the edge. This layer keys by caller
+identity (API key -> user ID -> IP), which is fairer when users share an IP/NAT.
 
-Bộ đếm lưu trong Redis bằng Lua script (cập nhật atomically). Nếu Redis không sẵn
-sàng, fallback về bộ nhớ trong tiến trình và log warning — không chặn request.
+The counter is stored in Redis through an atomic Lua script. If Redis is
+unavailable, the middleware falls back to in-process memory and logs a warning.
 """
 
 import logging
@@ -19,9 +19,9 @@ from app.core.config import get_settings
 
 logger = logging.getLogger("app.rate_limit")
 
-# Trả về [allowed, remaining, retry_after_ms]
+# Returns [allowed, remaining, retry_after_ms].
 #
-# Token bucket: capacity = burst, refill = limit token mỗi 60s.
+# Token bucket: capacity = burst, refill = limit tokens every 60 seconds.
 _TOKEN_BUCKET_LUA = """
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
@@ -63,7 +63,7 @@ _in_memory_buckets: dict[str, deque[float]] = defaultdict(deque)
 
 
 def _client_key(request: Request) -> str:
-    """Định danh người gọi: ưu tiên API key, rồi user id, cuối cùng IP."""
+    """Identify the caller by API key, then user ID, and finally IP."""
     api_key = request.headers.get("X-API-Key")
     if api_key:
         return f"apikey:{api_key[:32]}"
@@ -79,7 +79,7 @@ def _is_write(request: Request) -> bool:
 
 
 def _fallback_allow(key: str, limit: int, burst: int) -> tuple[bool, int, int]:
-    """Token bucket in-memory, dùng khi Redis lỗi. Cùng ngữ nghĩa với bản Lua."""
+    """In-memory token bucket used when Redis fails."""
     now = time.monotonic()
     bucket = _in_memory_buckets[key]
     window = 60.0
@@ -88,7 +88,7 @@ def _fallback_allow(key: str, limit: int, burst: int) -> tuple[bool, int, int]:
     while bucket and now - bucket[0] > window:
         bucket.popleft()
 
-    # Hoàn lại token theo thời gian đã trôi qua
+    # Refill tokens according to elapsed time.
     if bucket:
         elapsed = now - bucket[-1]
         refill = (elapsed / window) * limit
@@ -114,7 +114,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not settings.rate_limit_enabled:
             return await call_next(request)
 
-        # Endpoint health không tính vào quota
+        # Health checks do not consume quota.
         if request.url.path.rstrip("/").endswith("/health"):
             return await call_next(request)
 
@@ -160,7 +160,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 )
                 allowed, remaining, retry_after = (int(v) for v in raw)
                 return bool(allowed), remaining, retry_after
-            except Exception:  # noqa: BLE001 - Redis lỗi không được làm sập request
-                logger.warning("Redis rate limit lỗi, fallback in-memory", exc_info=True)
+            except Exception:  # noqa: BLE001 - a Redis failure must not fail the request
+                logger.warning("Redis rate limiting failed; using in-memory fallback", exc_info=True)
 
         return _fallback_allow(redis_key, limit, burst)

@@ -25,9 +25,9 @@ function ChoiceButton({ choice, isSelected, isCorrect, isWrong, graded, onSelect
 }
 
 function QuestionVerdict({ selected, correctKey }) {
-  if (!selected) return <>Chưa trả lời — đáp án đúng: {correctKey}</>
-  if (selected === correctKey) return <>Đúng</>
-  return <>Sai — đáp án đúng: {correctKey}</>
+  if (!selected) return <>Unanswered — correct answer: {correctKey}</>
+  if (selected === correctKey) return <>Correct</>
+  return <>Incorrect — correct answer: {correctKey}</>
 }
 
 export default function QuestionCard({
@@ -69,7 +69,7 @@ export default function QuestionCard({
           disabled={graded}
           onClick={() => onToggleFlag(question.id)}
         >
-          {flagged ? 'Đã đánh dấu xem lại' : 'Lát kiểm tra lại'}
+          {flagged ? 'Flagged for review' : 'Review later'}
         </button>
         {graded ? (
           <p className={selected === correctKey ? 'verdict ok' : 'verdict bad'}>
